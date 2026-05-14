@@ -23,7 +23,8 @@ app.use(cors({
     "http://localhost:5173",
     "https://chippy-erp.pages.dev",
     "http://13.201.124.83:5173",
-    "http://13.201.124.83"
+    "http://13.201.124.83",
+    "https://rarely-loving-thumbnail-hang.trycloudflare.com"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
