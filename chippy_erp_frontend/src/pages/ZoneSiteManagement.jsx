@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Eye, Edit2, Map, Building2, ArrowLeft, Download, DoorOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { exportToCSV } from '../utils/exportCSV';
+import API_BASE_URL from '../config';
 
 export default function ZoneSiteManagement() {
   const navigate = useNavigate();
@@ -32,14 +33,14 @@ export default function ZoneSiteManagement() {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': 'Bearer ' + token };
       
-      const resEmps = await fetch('http://localhost:5000/api/employees', { headers });
+      const resEmps = await fetch(`${API_BASE_URL}/api/employees`, { headers });
       if(resEmps.ok) setEmployees(await resEmps.json());
 
       if(activeTab === 'zones') {
-        const res = await fetch('http://localhost:5000/api/locations/zones', { headers });
+        const res = await fetch(`${API_BASE_URL}/api/locations/zones`, { headers });
         if(res.ok) setZones(await res.json());
       } else {
-        const res = await fetch('http://localhost:5000/api/locations/sites', { headers });
+        const res = await fetch(`${API_BASE_URL}/api/locations/sites`, { headers });
         if(res.ok) setSites(await res.json());
       }
     } finally {
@@ -51,7 +52,7 @@ export default function ZoneSiteManagement() {
     e.preventDefault();
     if(isViewOnly) return setViewMode('list');
     const token = localStorage.getItem('token');
-    const url = editId ? `http://localhost:5000/api/locations/zones/${editId}` : 'http://localhost:5000/api/locations/zones';
+    const url = editId ? `${API_BASE_URL}/api/locations/zones/${editId}` : `${API_BASE_URL}/api/locations/zones`;
     const method = editId ? 'PUT' : 'POST';
     await fetch(url, {
       method,
@@ -69,7 +70,7 @@ export default function ZoneSiteManagement() {
     e.preventDefault();
     if(isViewOnly) return setViewMode('list');
     const token = localStorage.getItem('token');
-    const url = editId ? `http://localhost:5000/api/locations/sites/${editId}` : 'http://localhost:5000/api/locations/sites';
+    const url = editId ? `${API_BASE_URL}/api/locations/sites/${editId}` : `${API_BASE_URL}/api/locations/sites`;
     const method = editId ? 'PUT' : 'POST';
     await fetch(url, {
       method,

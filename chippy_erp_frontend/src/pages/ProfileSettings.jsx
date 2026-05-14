@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Camera, User, Lock, Mail, Bell, Shield, LogOut, ChevronRight, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import API_BASE_URL from '../config';
 
 export default function ProfileSettings() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export default function ProfileSettings() {
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/employees/me', {
+      const response = await axios.get(`${API_BASE_URL}/api/employees/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUser(response.data);
@@ -49,7 +50,7 @@ export default function ProfileSettings() {
     setMessage(null);
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:5000/api/employees/me', editFormData, {
+      await axios.put(`${API_BASE_URL}/api/employees/me`, editFormData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
@@ -72,7 +73,7 @@ export default function ProfileSettings() {
     setMessage(null);
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:5000/api/employees/me/password', {
+      await axios.put(`${API_BASE_URL}/api/employees/me/password`, {
         oldPassword: passwordFormData.oldPassword,
         newPassword: passwordFormData.newPassword
       }, {

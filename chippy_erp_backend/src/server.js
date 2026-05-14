@@ -18,8 +18,20 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://chippy-erp.pages.dev"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true
+}));
 app.use(express.json());
+
+// Health Check Route
+app.get('/api', (req, res) => {
+  res.json({ message: 'Chippy ERP API is running', status: 'online' });
+});
 
 // Routes
 app.use('/api/auth', authRoutes);

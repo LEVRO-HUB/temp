@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import '../styles/PurchaseOrderManagement.css';
 import { useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../config';
 
 export default function PurchaseOrderManagement({ tab }) {
   const navigate = useNavigate();
@@ -47,7 +48,7 @@ export default function PurchaseOrderManagement({ tab }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/api/pos`, {
+      const res = await fetch(`${API_BASE_URL}/api/pos`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -103,7 +104,7 @@ export default function PurchaseOrderManagement({ tab }) {
     }
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/pos', {
+      const res = await fetch(`${API_BASE_URL}/api/pos`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -140,7 +141,7 @@ export default function PurchaseOrderManagement({ tab }) {
   const updatePOStatus = async (id, newFlag) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/api/pos/${id}/status`, {
+      const res = await fetch(`${API_BASE_URL}/api/pos/${id}/status`, {
         method: 'PUT',
         headers: { 
           'Authorization': `Bearer ${token}`,

@@ -3,6 +3,7 @@ import { Users, Calendar, BarChart2, ArrowUp, Link as LinkIcon, Eye } from "luci
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Legend, PieChart, Pie, Cell } from "recharts";
 import { Link } from "react-router-dom";
 import { jwtDecode } from 'jwt-decode';
+import API_BASE_URL from '../config';
 
 export default function Dashboard() {
   const [userName, setUserName] = useState('User');
@@ -31,7 +32,7 @@ export default function Dashboard() {
   const fetchDashboardMetrics = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/dashboard', {
+      const res = await fetch(`${API_BASE_URL}/api/dashboard`, {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.ok) setMetrics(await res.json());

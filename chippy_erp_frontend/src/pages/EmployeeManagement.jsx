@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, ArrowLeft, Eye, Download, ShieldCheck, UserCog, User, BadgeCent, UserCheck, Settings, TrendingUp, Wallet, Home, ChefHat, Wrench, Shirt, Hotel, Check } from 'lucide-react';
 import { exportToCSV } from '../utils/exportCSV';
+import API_BASE_URL from '../config';
 
 export default function EmployeeManagement() {
   const [employees, setEmployees] = useState([]);
@@ -29,8 +30,8 @@ export default function EmployeeManagement() {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': 'Bearer ' + token };
       const [resRoles, resDepts] = await Promise.all([
-        fetch('http://localhost:5000/api/roles', { headers }),
-        fetch('http://localhost:5000/api/departments', { headers })
+        fetch(`${API_BASE_URL}/api/roles`, { headers }),
+        fetch(`${API_BASE_URL}/api/departments`, { headers })
       ]);
       if (resRoles.ok) setRoles(await resRoles.json());
       if (resDepts.ok) setDepartments(await resDepts.json());
@@ -42,7 +43,7 @@ export default function EmployeeManagement() {
   const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/employees', {
+      const res = await fetch(`${API_BASE_URL}/api/employees`, {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.ok) setEmployees(await res.json());
@@ -56,7 +57,7 @@ export default function EmployeeManagement() {
     if (isViewOnly) return setViewMode('list');
     
     const token = localStorage.getItem('token');
-    const url = editId ? `http://localhost:5000/api/employees/${editId}` : 'http://localhost:5000/api/employees';
+    const url = editId ? `${API_BASE_URL}/api/employees/${editId}` : `${API_BASE_URL}/api/employees`;
     const method = editId ? 'PUT' : 'POST';
 
     const res = await fetch(url, {
@@ -95,7 +96,7 @@ export default function EmployeeManagement() {
 
   const toggleLoginStatus = async (id, currentStatus) => {
     const token = localStorage.getItem('token');
-    await fetch(`http://localhost:5000/api/employees/${id}/login-access`, {
+    await fetch(`${API_BASE_URL}/api/employees/${id}/login-access`, {
        method: 'PATCH',
        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
        body: JSON.stringify({ login_enabled: !currentStatus })

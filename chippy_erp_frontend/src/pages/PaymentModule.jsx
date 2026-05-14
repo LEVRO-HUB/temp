@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Eye, Edit2, Download, Printer, ArrowLeft, Search } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import { exportToCSV } from '../utils/exportCSV';
+import API_BASE_URL from '../config';
 
 export default function PaymentModule() {
   const [payments, setPayments] = useState([]);
@@ -41,8 +42,8 @@ export default function PaymentModule() {
       });
 
       const [resPay, resBook] = await Promise.all([
-        fetch(`http://localhost:5000/api/payments?${queryParams}`, { headers }),
-        fetch('http://localhost:5000/api/bookings', { headers })
+        fetch(`${API_BASE_URL}/api/payments?${queryParams}`, { headers }),
+        fetch(`${API_BASE_URL}/api/bookings`, { headers })
       ]);
       
       if (resPay.ok) {
@@ -62,7 +63,7 @@ export default function PaymentModule() {
 
     const token = localStorage.getItem('token');
     const method = editId ? 'PUT' : 'POST';
-    const url = editId ? `http://localhost:5000/api/payments/${editId}` : 'http://localhost:5000/api/payments';
+    const url = editId ? `${API_BASE_URL}/api/payments/${editId}` : `${API_BASE_URL}/api/payments`;
 
     await fetch(url, {
       method,
