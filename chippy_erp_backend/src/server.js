@@ -21,7 +21,9 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://chippy-erp.pages.dev"
+    "https://chippy-erp.pages.dev",
+    "http://13.201.124.83:5173",
+    "http://13.201.124.83"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
