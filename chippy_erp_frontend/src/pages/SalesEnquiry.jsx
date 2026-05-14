@@ -14,7 +14,6 @@ export default function SalesEnquiry() {
 
   const [form, setForm] = useState({
     guest_name: '', mobile_number: '', place: '', site_id: '', email: '',
-    guest_name: '', mobile_number: '', place: '', site_id: '', email: '',
     room_type_requested: '', check_in_date: '', check_out_date: '', no_of_days: '',
     enquiry_source: '', remarks: '', status: 'New', time: ''
   });
