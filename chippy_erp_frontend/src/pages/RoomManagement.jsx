@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Download, FileText, Calendar, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../config';
 
 export default function RoomManagement() {
   const navigate = useNavigate();
@@ -23,10 +24,10 @@ export default function RoomManagement() {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': 'Bearer ' + token };
       const [resRooms, resSites, resZones, resBookings] = await Promise.all([
-        fetch('http://localhost:5000/api/rooms', { headers }),
-        fetch('http://localhost:5000/api/locations/sites', { headers }),
-        fetch('http://localhost:5000/api/locations/zones', { headers }),
-        fetch('http://localhost:5000/api/bookings', { headers })
+        fetch(`${API_BASE_URL}/api/rooms`, { headers }),
+        fetch(`${API_BASE_URL}/api/locations/sites`, { headers }),
+        fetch(`${API_BASE_URL}/api/locations/zones`, { headers }),
+        fetch(`${API_BASE_URL}/api/bookings`, { headers })
       ]);
       
       const fetchedSites = await resSites.json();

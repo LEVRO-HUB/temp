@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Eye, Edit2, Calendar, ArrowLeft, User, Phone, Mail, MapPin, Building2, BedDouble, Clock, PhoneCall, Clock3, Flag, FileText, Info, X, Search } from 'lucide-react';
 import Pagination from '../components/Pagination';
+import API_BASE_URL from '../config';
 
 export default function SalesEnquiry() {
   const [enquiries, setEnquiries] = useState([]);
@@ -48,9 +49,9 @@ export default function SalesEnquiry() {
       });
 
       const [resEnq, resSites, resEmps] = await Promise.all([
-        fetch(`http://localhost:5000/api/enquiries?${queryParams}`, { headers }),
-        fetch('http://localhost:5000/api/locations/sites', { headers }),
-        fetch('http://localhost:5000/api/employees', { headers })
+        fetch(`${API_BASE_URL}/api/enquiries?${queryParams}`, { headers }),
+        fetch(`${API_BASE_URL}/api/locations/sites`, { headers }),
+        fetch(`${API_BASE_URL}/api/employees`, { headers })
       ]);
       
       if (resEnq.ok) {
@@ -71,7 +72,7 @@ export default function SalesEnquiry() {
 
     const token = localStorage.getItem('token');
     const method = editId ? 'PUT' : 'POST';
-    const url = editId ? `http://localhost:5000/api/enquiries/${editId}` : 'http://localhost:5000/api/enquiries';
+    const url = editId ? `${API_BASE_URL}/api/enquiries/${editId}` : `${API_BASE_URL}/api/enquiries`;
 
     await fetch(url, {
       method,

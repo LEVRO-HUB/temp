@@ -3,6 +3,7 @@ import { Plus, Eye, Edit2, Calendar, ArrowLeft, Download, FileText, User, Phone,
 import Pagination from '../components/Pagination';
 import { useLocation } from 'react-router-dom';
 import { exportToCSV } from '../utils/exportCSV';
+import API_BASE_URL from '../config';
 
 export default function SalesBooking() {
   const location = useLocation();
@@ -51,11 +52,11 @@ export default function SalesBooking() {
       });
 
       const [resBooks, resSites, resEmps, resEnqs, resRooms] = await Promise.all([
-        fetch(`http://localhost:5000/api/bookings?${queryParams}`, { headers }),
-        fetch('http://localhost:5000/api/locations/sites', { headers }),
-        fetch('http://localhost:5000/api/employees', { headers }),
-        fetch('http://localhost:5000/api/enquiries', { headers }), // We might want to paginate this too if it's large, but it's for the dropdown
-        fetch('http://localhost:5000/api/locations/rooms', { headers })
+        fetch(`${API_BASE_URL}/api/bookings?${queryParams}`, { headers }),
+        fetch(`${API_BASE_URL}/api/locations/sites`, { headers }),
+        fetch(`${API_BASE_URL}/api/employees`, { headers }),
+        fetch(`${API_BASE_URL}/api/enquiries`, { headers }),
+        fetch(`${API_BASE_URL}/api/locations/rooms`, { headers })
       ]);
       
       if (resBooks.ok) {
@@ -87,7 +88,7 @@ export default function SalesBooking() {
     if(isViewOnly) return setViewMode('list');
 
     const token = localStorage.getItem('token');
-    const url = editId ? `http://localhost:5000/api/bookings/${editId}` : `http://localhost:5000/api/bookings`;
+    const url = editId ? `${API_BASE_URL}/api/bookings/${editId}` : `${API_BASE_URL}/api/bookings`;
     const method = editId ? 'PUT' : 'POST';
 
     await fetch(url, {
