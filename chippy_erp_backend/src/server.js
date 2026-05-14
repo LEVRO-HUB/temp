@@ -21,6 +21,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Health Check Route
+app.get('/api', (req, res) => {
+  res.json({ message: 'Chippy ERP API is running', status: 'online' });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
