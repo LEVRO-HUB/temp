@@ -19,13 +19,16 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://chippy-erp.pages.dev",
-    "http://13.201.124.83:5173",
-    "http://13.201.124.83",
-    "https://rarely-loving-thumbnail-hang.trycloudflare.com"
-  ],
+  origin: (origin, callback) => {
+    if (!origin || 
+        origin.includes("localhost") || 
+        origin.includes("chippy-erp.pages.dev") || 
+        origin.includes("trycloudflare.com")) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
 }));
