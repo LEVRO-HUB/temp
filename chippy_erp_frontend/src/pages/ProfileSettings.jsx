@@ -90,7 +90,7 @@ export default function ProfileSettings() {
   };
 
   const SettingItem = ({ icon: Icon, title, subtitle, color, onClick }) => (
-    <div 
+    <div
       onClick={onClick}
       className="flex items-center justify-between p-4 bg-white hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 last:border-0 group"
     >
@@ -135,7 +135,7 @@ export default function ProfileSettings() {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600"
         >
@@ -148,9 +148,9 @@ export default function ProfileSettings() {
       {/* Profile Header */}
       <div className="flex flex-col items-center mb-10">
         <div className="relative">
-          <img 
-            src={`https://ui-avatars.com/api/?name=${user.name}&background=2563EB&color=fff&size=128&rounded=true`} 
-            alt="Profile" 
+          <img
+            src={`https://ui-avatars.com/api/?name=${user.name}&background=2563EB&color=fff&size=128&rounded=true`}
+            alt="Profile"
             className="w-24 h-24 rounded-full border-4 border-white shadow-lg"
           />
           <button className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-md border border-gray-100 text-blue-600 hover:text-blue-700 transition-colors">
@@ -166,24 +166,24 @@ export default function ProfileSettings() {
         <div>
           <h3 className="text-[11px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-1">ACCOUNT</h3>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <SettingItem 
-              icon={User} 
-              title="Edit Profile" 
-              subtitle="Update your name and mobile number" 
+            <SettingItem
+              icon={User}
+              title="Edit Profile"
+              subtitle="Update your name and mobile number"
               color="bg-purple-600"
               onClick={() => setIsEditModalOpen(true)}
             />
-            <SettingItem 
-              icon={Lock} 
-              title="Change Password" 
-              subtitle="Update your password" 
+            <SettingItem
+              icon={Lock}
+              title="Change Password"
+              subtitle="Update your password"
               color="bg-indigo-600"
               onClick={() => setIsPasswordModalOpen(true)}
             />
-            <SettingItem 
-              icon={Mail} 
-              title="Email Address" 
-              subtitle={user.email} 
+            <SettingItem
+              icon={Mail}
+              title="Email Address"
+              subtitle={user.email}
               color="bg-blue-600"
             />
           </div>
@@ -193,16 +193,16 @@ export default function ProfileSettings() {
         <div>
           <h3 className="text-[11px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-1">PREFERENCES</h3>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <SettingItem 
-              icon={Bell} 
-              title="Notifications" 
-              subtitle="Manage your notification preferences" 
+            <SettingItem
+              icon={Bell}
+              title="Notifications"
+              subtitle="Manage your notification preferences"
               color="bg-purple-500"
             />
-            <SettingItem 
-              icon={Shield} 
-              title="Privacy" 
-              subtitle="Manage your privacy settings" 
+            <SettingItem
+              icon={Shield}
+              title="Privacy"
+              subtitle="Manage your privacy settings"
               color="bg-indigo-500"
             />
           </div>
@@ -210,7 +210,7 @@ export default function ProfileSettings() {
 
         {/* Logout Section */}
         <div className="pt-4">
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full flex items-center justify-between p-4 bg-white hover:bg-red-50 rounded-2xl shadow-sm border border-gray-100 transition-all group"
           >
@@ -241,33 +241,33 @@ export default function ProfileSettings() {
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 px-1">Full Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   value={editFormData.name}
-                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 px-1">Mobile Number</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   value={editFormData.mobile_number}
-                  onChange={(e) => setEditFormData({...editFormData, mobile_number: e.target.value})}
+                  onChange={(e) => setEditFormData({ ...editFormData, mobile_number: e.target.value })}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
               <div className="pt-4 flex gap-3">
-                <button 
+                <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
                   className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   disabled={formLoading}
                   className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-600/20 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
@@ -293,44 +293,44 @@ export default function ProfileSettings() {
             <form onSubmit={handlePasswordSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 px-1">Current Password</label>
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   required
                   value={passwordFormData.oldPassword}
-                  onChange={(e) => setPasswordFormData({...passwordFormData, oldPassword: e.target.value})}
+                  onChange={(e) => setPasswordFormData({ ...passwordFormData, oldPassword: e.target.value })}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
               <div className="border-t border-gray-50 pt-2"></div>
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 px-1">New Password</label>
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   required
                   value={passwordFormData.newPassword}
-                  onChange={(e) => setPasswordFormData({...passwordFormData, newPassword: e.target.value})}
+                  onChange={(e) => setPasswordFormData({ ...passwordFormData, newPassword: e.target.value })}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 px-1">Confirm New Password</label>
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   required
                   value={passwordFormData.confirmPassword}
-                  onChange={(e) => setPasswordFormData({...passwordFormData, confirmPassword: e.target.value})}
+                  onChange={(e) => setPasswordFormData({ ...passwordFormData, confirmPassword: e.target.value })}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
               <div className="pt-4 flex gap-3">
-                <button 
+                <button
                   type="button"
                   onClick={() => setIsPasswordModalOpen(false)}
                   className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   disabled={formLoading}
                   className="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 disabled:opacity-50 transition-all flex items-center justify-center gap-2"

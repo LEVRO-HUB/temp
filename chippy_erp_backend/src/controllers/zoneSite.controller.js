@@ -49,11 +49,15 @@ export const getSites = async (req, res) => {
 
 export const createSite = async (req, res) => {
   try {
-    const { site_name, zone_id, type, location, full_address, flat_no_prefix, total_project_rooms } = req.body;
+    const { site_name, zone_id, site_type, location, total_rooms, unit_code } = req.body;
     const site = await prisma.site.create({
       data: {
-        site_name, zone_id: parseInt(zone_id), type, location,
-        full_address, flat_no_prefix, total_project_rooms: parseInt(total_project_rooms) || 0
+        site_name, 
+        zone_id: parseInt(zone_id), 
+        site_type, // Enum: hotel, service_apartment
+        location,
+        total_rooms: parseInt(total_rooms) || 0,
+        unit_code
       }
     });
     res.status(201).json(site);
@@ -66,12 +70,16 @@ export const createSite = async (req, res) => {
 export const updateSite = async (req, res) => {
   try {
     const { id } = req.params;
-    const { site_name, zone_id, type, location, full_address, flat_no_prefix, total_project_rooms } = req.body;
+    const { site_name, zone_id, site_type, location, total_rooms, unit_code } = req.body;
     const site = await prisma.site.update({
       where: { id: parseInt(id) },
       data: {
-        site_name, zone_id: parseInt(zone_id), type, location,
-        full_address, flat_no_prefix, total_project_rooms: parseInt(total_project_rooms) || 0
+        site_name, 
+        zone_id: parseInt(zone_id), 
+        site_type, 
+        location,
+        total_rooms: parseInt(total_rooms) || 0,
+        unit_code
       }
     });
     res.json(site);

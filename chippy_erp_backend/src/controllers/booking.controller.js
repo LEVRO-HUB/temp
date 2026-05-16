@@ -52,9 +52,9 @@ export const createBooking = async (req, res) => {
     const booking = await prisma.booking.create({
       data: {
         enquiry_id: enquiry_id ? parseInt(enquiry_id) : null,
-        site_id: parseInt(site_id) || 1, // Fallback safe
-        room_id: room_id ? parseInt(room_id) : (req.body.room_unit ? parseInt(req.body.room_unit) : 1),
-        booking_type: booking_type || 'Walk-In',
+        site_id: parseInt(site_id) || 1,
+        room_id: parseInt(room_id),
+        booking_type: booking_type || 'walk_in',
         guest_name,
         guest_count: parseInt(guest_count) || 1,
         mobile_number,
@@ -67,7 +67,6 @@ export const createBooking = async (req, res) => {
       }
     });
 
-    // Optionally update enquiry to converted
     if (enquiry_id) {
        await prisma.enquiry.update({
          where: { id: parseInt(enquiry_id) },

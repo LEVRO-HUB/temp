@@ -5,12 +5,12 @@ const prisma = new PrismaClient();
 // Get all purchase orders
 export const getPurchaseOrders = async (req, res) => {
   try {
-    const { flag, search } = req.query;
+    const { status, search } = req.query;
 
     const whereClause = {};
 
-    if (flag !== undefined && flag !== 'All' && flag !== '') {
-      whereClause.flag = parseInt(flag);
+    if (status !== undefined && status !== 'All' && status !== '') {
+      whereClause.status = status;
     }
 
     if (search) {
@@ -42,7 +42,7 @@ export const createPurchaseOrder = async (req, res) => {
     const { 
       vendor_name, site_id, items, department, priority, 
       payment_terms, expected_delivery, delivery_location, 
-      contact_person, remarks, flag 
+      contact_person, remarks, status 
     } = req.body;
     
     // items should be an array of { description, unit, quantity, unit_price, total_price }
@@ -62,7 +62,7 @@ export const createPurchaseOrder = async (req, res) => {
           vendor_name,
           site_id: parseInt(site_id),
           department,
-          priority: priority || "Normal",
+          priority: priority || "normal",
           payment_terms,
           expected_delivery: expected_delivery ? new Date(expected_delivery) : null,
           delivery_location,
@@ -71,7 +71,7 @@ export const createPurchaseOrder = async (req, res) => {
           subtotal,
           tax_amount,
           total_amount,
-          flag: flag !== undefined ? parseInt(flag) : 0,
+          status: status || 'pending',
           created_by: req.user.id
         }
       });
@@ -106,11 +106,11 @@ export const createPurchaseOrder = async (req, res) => {
 export const updatePurchaseOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { flag } = req.body;
+    const { status } = req.body;
     
     const updated = await prisma.purchaseOrder.update({
       where: { id: parseInt(id) },
-      data: { flag: parseInt(flag) }
+      data: { status }
     });
     
     res.json({ message: 'Status updated', purchaseOrder: updated });

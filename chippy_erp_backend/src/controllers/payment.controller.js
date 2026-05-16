@@ -61,9 +61,9 @@ export const createPayment = async (req, res) => {
       const newPayment = await tx.payment.create({
         data: {
           payment_no: payment_no || `SYS-${Date.now().toString().slice(-6)}`,
-          transaction_type: transaction_type || 'Receipt', 
-          type_of_method: type_of_method || req.body.method,
-          payment_type: payment_type || 'Advanced', // advance, full, partial
+          transaction_type: transaction_type || 'credit', 
+          type_of_method: type_of_method || 'cash',
+          payment_type: payment_type || 'advance', 
           cheque_no,
           cheque_date: cheque_date ? new Date(cheque_date) : null,
           rtgs_ref_no,

@@ -8,10 +8,18 @@ export const getDashboardMetrics = async (req, res) => {
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 6);
 
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const dayBeforeYesterday = new Date(yesterday);
+    dayBeforeYesterday.setDate(yesterday.getDate() - 1);
+
     const [
       dailyEnquiriesCount,
+      yesterdayEnquiriesCount,
       totalBookingsCount,
+      yesterdayBookingsCount,
       totalRevenueAggr,
+      yesterdayRevenueAggr,
       totalEnquiriesCount,
       convertedEnquiriesCount,
       recentEnquiriesData,
@@ -23,8 +31,11 @@ export const getDashboardMetrics = async (req, res) => {
       trendEnquiriesRaw
     ] = await Promise.all([
       prisma.enquiry.count({ where: { created_at: { gte: today } } }),
+      prisma.enquiry.count({ where: { created_at: { gte: yesterday, lt: today } } }),
       prisma.booking.count(),
+      prisma.booking.count({ where: { created_at: { lt: today } } }), // Total until yesterday
       prisma.booking.aggregate({ _sum: { total_amount: true } }),
+      prisma.booking.aggregate({ _sum: { total_amount: true }, where: { created_at: { lt: today } } }),
       prisma.enquiry.count(),
       prisma.enquiry.count({ where: { status: 'converted' } }),
       prisma.enquiry.findMany({ orderBy: { id: 'desc' }, take: 8, include: { site: true } }),
@@ -37,8 +48,29 @@ export const getDashboardMetrics = async (req, res) => {
     ]);
 
     const totalRevenue = totalRevenueAggr._sum.total_amount || 0;
-    const bookingConversionRate = totalEnquiriesCount === 0 ? 0 : parseFloat(((convertedEnquiriesCount / totalEnquiriesCount) * 100).toFixed(2));
+    const yesterdayRevenue = yesterdayRevenueAggr._sum.total_amount || 0;
 
+    const calcChange = (curr, prev) => {
+      if (prev === 0) return curr > 0 ? 100 : 0;
+      return parseFloat((((curr - prev) / prev) * 100).toFixed(1));
+    };
+
+    const enquiryChange = calcChange(dailyEnquiriesCount, yesterdayEnquiriesCount);
+    // For total bookings/revenue, we show change in the *rate* of growth if needed, 
+    // but usually, it's easier to show today's vs yesterday's incremental gain.
+    // Let's get today's incremental bookings/revenue first.
+    const todayBookingsCount = await prisma.booking.count({ where: { created_at: { gte: today } } });
+    const yesterdayIncrementalBookings = await prisma.booking.count({ where: { created_at: { gte: yesterday, lt: today } } });
+    const bookingChange = calcChange(todayBookingsCount, yesterdayIncrementalBookings);
+
+    const todayRevenueAggr = await prisma.booking.aggregate({ _sum: { total_amount: true }, where: { created_at: { gte: today } } });
+    const todayRevenue = todayRevenueAggr._sum.total_amount || 0;
+    const yesterdayIncrementalRevenueAggr = await prisma.booking.aggregate({ _sum: { total_amount: true }, where: { created_at: { gte: yesterday, lt: today } } });
+    const yesterdayIncrementalRevenue = yesterdayIncrementalRevenueAggr._sum.total_amount || 0;
+    const revenueChange = calcChange(todayRevenue, yesterdayIncrementalRevenue);
+
+    const bookingConversionRate = totalEnquiriesCount === 0 ? 0 : parseFloat(((convertedEnquiriesCount / totalEnquiriesCount) * 100).toFixed(2));
+    
     const formatTime = (d) => new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const formatDate = (d) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -102,6 +134,9 @@ export const getDashboardMetrics = async (req, res) => {
       totalBookingsCount,
       totalRevenue,
       bookingConversionRate,
+      enquiryChange,
+      bookingChange,
+      revenueChange,
       trendEnquiries,
       recentEnquiries,
       recentBookings,

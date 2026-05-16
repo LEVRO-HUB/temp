@@ -19,8 +19,8 @@ export default function ZoneSiteManagement() {
   const [zoneName, setZoneName] = useState('');
   const [zoneCode, setZoneCode] = useState('');
   const [siteForm, setSiteForm] = useState({ 
-    site_name: '', zone_id: '', type: 'project', location: '', full_address: '', 
-    flat_no_prefix: '', total_project_rooms: ''
+    site_name: '', zone_id: '', site_type: 'hotel', location: '', full_address: '', 
+    unit_code: '', total_rooms: ''
   });
   const [employees, setEmployees] = useState([]);
 
@@ -75,9 +75,9 @@ export default function ZoneSiteManagement() {
     await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({...siteForm, zone_id: parseInt(siteForm.zone_id), total_project_rooms: parseInt(siteForm.total_project_rooms)})
+      body: JSON.stringify({...siteForm, zone_id: parseInt(siteForm.zone_id), total_rooms: parseInt(siteForm.total_rooms)})
     });
-    setSiteForm({ site_name: '', zone_id: '', type: 'project', location: '', full_address: '', flat_no_prefix: '', total_project_rooms: '' });
+    setSiteForm({ site_name: '', zone_id: '', site_type: 'hotel', location: '', full_address: '', unit_code: '', total_rooms: '' });
     setEditId(null);
     setViewMode('list');
     fetchData();
@@ -93,9 +93,9 @@ export default function ZoneSiteManagement() {
 
   const handleEditSite = (s, viewOnly=false) => {
     setSiteForm({
-      site_name: s.site_name, zone_id: s.zone_id, type: s.type, 
+      site_name: s.site_name, zone_id: s.zone_id, site_type: s.site_type, 
       location: s.location || '', full_address: s.full_address || '', 
-      flat_no_prefix: s.flat_no_prefix || '', total_project_rooms: s.total_project_rooms || ''
+      unit_code: s.unit_code || '', total_rooms: s.total_rooms || ''
     });
     setEditId(s.id);
     setIsViewOnly(viewOnly);
@@ -103,11 +103,11 @@ export default function ZoneSiteManagement() {
   };
 
   const resetZoneForm = () => { setEditId(null); setIsViewOnly(false); setZoneName(''); setZoneCode(''); setViewMode('createZone'); };
-  const resetSiteForm = () => { setEditId(null); setIsViewOnly(false); setSiteForm({ site_name: '', zone_id: '', type: 'project', location: '', full_address: '', flat_no_prefix: '', total_project_rooms: '' }); setViewMode('createSite'); };
+  const resetSiteForm = () => { setEditId(null); setIsViewOnly(false); setSiteForm({ site_name: '', zone_id: '', site_type: 'hotel', location: '', full_address: '', unit_code: '', total_rooms: '' }); setViewMode('createSite'); };
 
   if (viewMode === 'createZone') {
     return (
-      <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] sm:p-8 p-6 -m-8 border-l border-[#E5E7EB]">
+      <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] p-4 md:p-8 md:-m-8 border-0 md:border-l border-[#E5E7EB]">
         
         <div className="flex items-center gap-3 mb-6">
            <button onClick={() => setViewMode('list')} className="p-2 bg-white border border-[#E5E7EB] rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors shadow-sm">
@@ -166,7 +166,7 @@ export default function ZoneSiteManagement() {
 
   if (viewMode === 'createSite') {
     return (
-      <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] sm:p-8 p-6 -m-8 border-l border-[#E5E7EB]">
+      <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] p-4 md:p-8 md:-m-8 border-0 md:border-l border-[#E5E7EB]">
         
         <div className="flex items-center gap-3 mb-6">
            <button onClick={() => setViewMode('list')} className="p-2 bg-white border border-[#E5E7EB] rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors shadow-sm">
@@ -199,9 +199,9 @@ export default function ZoneSiteManagement() {
                </div>
                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Property Type</label>
-                  <select value={siteForm.type} onChange={e=>setSiteForm({...siteForm, type: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500">
-                    <option value="project">Project</option>
-                    <option value="standalone">Standalone Building</option>
+                  <select value={siteForm.site_type} onChange={e=>setSiteForm({...siteForm, site_type: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500">
+                    <option value="hotel">Hotel</option>
+                    <option value="service_apartment">Service Apartment</option>
                   </select>
                </div>
                <div>
@@ -214,11 +214,11 @@ export default function ZoneSiteManagement() {
                </div>
                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Flat/Room Prefix</label>
-                  <input value={siteForm.flat_no_prefix} onChange={e=>setSiteForm({...siteForm, flat_no_prefix: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-900 outline-none focus:border-[#2563EB] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500" placeholder="e.g. A-" />
+                  <input value={siteForm.unit_code} onChange={e=>setSiteForm({...siteForm, unit_code: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-900 outline-none focus:border-[#2563EB] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500" placeholder="e.g. A-" />
                </div>
                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Total Rooms</label>
-                  <input type="number" min="1" value={siteForm.total_project_rooms} onChange={e=>setSiteForm({...siteForm, total_project_rooms: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-900 outline-none focus:border-[#2563EB] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500" placeholder="Total expected" />
+                  <input type="number" min="1" value={siteForm.total_rooms} onChange={e=>setSiteForm({...siteForm, total_rooms: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-900 outline-none focus:border-[#2563EB] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500" placeholder="Total expected" />
                </div>
                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
@@ -329,9 +329,9 @@ export default function ZoneSiteManagement() {
                      <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                        <td className="px-6 py-4 font-bold text-gray-900">{s.site_name}</td>
                        <td className="px-6 py-4 text-gray-600">{s.location || 'N/A'}</td>
-                       <td className="px-6 py-4 text-gray-600 capitalize">{s.type}</td>
+                       <td className="px-6 py-4 text-gray-600 capitalize">{s.site_type}</td>
                        <td className="px-6 py-4 text-gray-700">{s.zone?.zone_name}</td>
-                       <td className="px-6 py-4 text-gray-700 font-bold">{s.total_project_rooms}</td>
+                       <td className="px-6 py-4 text-gray-700 font-bold">{s.total_rooms}</td>
                        <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-3 text-[#2563EB]">
                              {/* QUICK ACTION: ADD ROOM */}

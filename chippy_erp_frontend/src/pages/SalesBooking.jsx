@@ -19,10 +19,10 @@ export default function SalesBooking() {
   const [isViewOnly, setIsViewOnly] = useState(false);
 
   const [form, setForm] = useState({
-    booking_type: 'Walk-In', guest_name: '', guest_count: 1, 
+    booking_type: 'walk_in', guest_name: '', guest_count: 1, 
     mobile_number: '', place: '', site_id: '',
     check_in_date: '', check_out_date: '', total_amount: '',
-    room_type: '', room_unit: '', rate: '', no_of_rooms: 1, remarks: '',
+    room_type: 'Room', room_unit: '', rate: '', no_of_rooms: 1, remarks: '',
     employee_id: '', enquiry_id: ''
   });
 
@@ -56,7 +56,7 @@ export default function SalesBooking() {
         fetch(`${API_BASE_URL}/api/locations/sites`, { headers }),
         fetch(`${API_BASE_URL}/api/employees`, { headers }),
         fetch(`${API_BASE_URL}/api/enquiries`, { headers }),
-        fetch(`${API_BASE_URL}/api/locations/rooms`, { headers })
+        fetch(`${API_BASE_URL}/api/rooms`, { headers })
       ]);
       
       if (resBooks.ok) {
@@ -108,7 +108,7 @@ export default function SalesBooking() {
 
   const handleEdit = (bkg, viewOnly=false) => {
     setForm({
-      booking_type: bkg.booking_type || 'Walk-In',
+      booking_type: bkg.booking_type || 'walk_in',
       guest_name: bkg.guest_name || '',
       guest_count: bkg.guest_count || 1,
       mobile_number: bkg.mobile_number || '',
@@ -129,7 +129,7 @@ export default function SalesBooking() {
   };
 
   const resetForm = () => {
-    setForm({ booking_type: 'Walk-In', guest_name: '', guest_count: 1, mobile_number: '', place: '', site_id: '', check_in_date: '', check_out_date: '', total_amount: '', room_type: '', room_unit: '', rate: '', no_of_rooms: 1, remarks: '' });
+    setForm({ booking_type: 'walk_in', guest_name: '', guest_count: 1, mobile_number: '', place: '', site_id: '', check_in_date: '', check_out_date: '', total_amount: '', room_type: 'Room', room_unit: '', rate: '', no_of_rooms: 1, remarks: '' });
     setEditId(null);
     setIsViewOnly(false);
   };
@@ -168,7 +168,7 @@ export default function SalesBooking() {
 
   if (viewMode === 'create') {
     return (
-      <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] sm:p-8 p-6 -m-8 border-l border-[#E5E7EB]">
+      <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] p-4 md:p-8 md:-m-8 border-0 md:border-l border-[#E5E7EB]">
         
         <div className="flex items-center gap-3 mb-6">
            <button onClick={() => setViewMode('list')} className="p-2 bg-white border border-[#E5E7EB] rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors shadow-sm">
@@ -344,9 +344,9 @@ export default function SalesBooking() {
                <div>
                   <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><Tags size={14} className="text-[#3B82F6]"/> Booking Type <span className="text-red-500">*</span></label>
                   <select required value={form.booking_type} onChange={e=>setForm({...form, booking_type: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
-                    <option value="Walk-In">Walk-In</option>
-                    <option value="Online">Online</option>
-                    <option value="Agent">Agent</option>
+                    <option value="walk_in">Walk-In</option>
+                    <option value="online">Online</option>
+                    <option value="agent">Agent</option>
                   </select>
                </div>
                <div>
@@ -393,8 +393,10 @@ export default function SalesBooking() {
                   <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><BedDouble size={14} className="text-[#3B82F6]"/> Room Type <span className="text-red-500">*</span></label>
                   <select required value={form.room_type} onChange={e=>setForm({...form, room_type: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
                     <option value="">Select Room Type</option>
-                    <option value="standard">Standard</option>
-                    <option value="deluxe">Deluxe</option>
+                    <option value="Room">Room</option>
+                    <option value="OneBHK">OneBHK</option>
+                    <option value="TwoBHK">TwoBHK</option>
+                    <option value="ThreeBHK">ThreeBHK</option>
                   </select>
                </div>
                <div>
@@ -438,48 +440,23 @@ export default function SalesBooking() {
 
   // LIST VIEW
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
-      <div className="flex justify-between items-end pb-4 border-b border-[#E5E7EB]">
-         <div>
-           <h1 className="text-2xl font-bold text-gray-900 leading-tight">Bookings & Sales</h1>
-         </div>
+    <div className="space-y-6 max-w-[1600px] mx-auto p-4 md:p-0">
+      <div className="flex justify-between items-center pb-4 border-b border-[#E5E7EB]">
+         <h1 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight">Bookings & Sales</h1>
          <div className="flex items-center gap-3">
-            <button onClick={() => exportToCSV(filteredBookings, 'bookings')} className="bg-white border-[#E5E7EB] border text-gray-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors shadow-sm">
+            <button onClick={() => exportToCSV(filteredBookings, 'bookings')} className="hidden md:flex bg-white border-[#E5E7EB] border text-gray-700 px-4 py-2 rounded-lg font-bold text-sm items-center gap-2 hover:bg-gray-50 transition-colors shadow-sm">
                <Download size={16} /> Export CSV
             </button>
-            <button onClick={() => { resetForm(); setViewMode('create'); }} className="bg-[#2563EB] text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
-               <Plus size={16} /> Add Booking
+            <button onClick={() => { resetForm(); setViewMode('create'); }} className="bg-[#1A56DB] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-medium text-xs md:text-sm flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm">
+               <Plus size={14} md:size={16} /> Add Booking
             </button>
          </div>
       </div>
 
       <div className="bg-white border border-[#E5E7EB] rounded-[12px] shadow-sm flex flex-col">
          {/* Filter Strip */}
-         <div className="p-4 border-b border-[#E5E7EB] flex flex-wrap items-center gap-4 bg-gray-50/50 rounded-t-[12px]">
-            <div className="flex items-center gap-2">
-               <input type="date" value={filterDateFrom} onChange={e=>setFilterDateFrom(e.target.value)} title="From Date" className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium w-36 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]" />
-               <span className="text-gray-400 text-sm">to</span>
-               <input type="date" value={filterDateTo} onChange={e=>setFilterDateTo(e.target.value)} title="To Date" className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium w-36 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]" />
-            </div>
-            <select value={filterEmployee} onChange={e=>setFilterEmployee(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium w-40 outline-none">
-              <option value="">All Employees</option>
-              {employees.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
-            </select>
-            <select value={filterSite} onChange={e=>setFilterSite(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium w-40 outline-none">
-              <option value="">All Sites</option>
-              {sites.map(s => <option key={s.id} value={s.id}>{s.site_name}</option>)}
-            </select>
-            <select className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium w-40 outline-none">
-              <option>All Types</option>
-              <option>Walk-In</option>
-              <option>Online</option>
-              <option>Agent</option>
-            </select>
-            <button onClick={() => {setFilterSite(''); setFilterEmployee(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); setCurrentPage(1);}} className="px-5 py-2 text-[#2563EB] border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-lg text-sm font-semibold transition-colors">
-              Reset
-            </button>
-
-            <div className="flex-1 min-w-[200px] relative">
+         <div className="p-4 border-b border-[#E5E7EB] flex flex-col gap-3 bg-[#F8FAFC] rounded-t-[12px]">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="text" 
@@ -489,9 +466,35 @@ export default function SalesBooking() {
                 className="w-full pl-10 pr-4 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 outline-none focus:border-[#2563EB]"
               />
             </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">From Date</p>
+                <input type="date" value={filterDateFrom} onChange={e=>setFilterDateFrom(e.target.value)} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none focus:border-[#2563EB]" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">To Date</p>
+                <input type="date" value={filterDateTo} onChange={e=>setFilterDateTo(e.target.value)} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none focus:border-[#2563EB]" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 md:flex md:flex-row gap-3">
+              <select value={filterEmployee} onChange={e=>setFilterEmployee(e.target.value)} className="w-full md:w-40 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none">
+                <option value="">All Employees</option>
+                {employees.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
+              </select>
+              <select value={filterSite} onChange={e=>setFilterSite(e.target.value)} className="w-full md:w-40 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none">
+                <option value="">All Sites</option>
+                {sites.map(s => <option key={s.id} value={s.id}>{s.site_name}</option>)}
+              </select>
+              <button onClick={() => {setFilterSite(''); setFilterEmployee(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); setCurrentPage(1);}} className="w-full md:w-auto px-5 py-2 text-[#2563EB] border border-[#BFDBFE] bg-blue-50 hover:bg-blue-100 rounded-lg text-[13px] font-bold transition-colors">
+                <span className="md:hidden">Reset</span>
+                <span className="hidden md:inline">Reset Filters</span>
+              </button>
+            </div>
          </div>
 
-         <div className="overflow-x-auto">
+         <div className="overflow-x-auto hidden md:block">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="text-gray-500 font-semibold border-b border-[#E5E7EB]">
                 <tr>
@@ -537,6 +540,72 @@ export default function SalesBooking() {
                 ))}
               </tbody>
             </table>
+         </div>
+
+         {/* MOBILE CARD VIEW OR EMPTY STATE */}
+         <div className="md:hidden flex flex-col bg-[#F4F7FE] p-4 min-h-[400px]">
+           {loading ? (
+             <div className="text-center py-8 text-sm text-gray-500 font-medium">Loading records...</div>
+           ) : bookings.length === 0 ? (
+             <div className="flex-1 flex flex-col items-center justify-center text-center px-4 pt-10 pb-20 rounded-2xl border border-dashed border-[#BFDBFE] bg-blue-50/30">
+               <div className="w-16 h-16 bg-[#DBEAFE] rounded-2xl flex items-center justify-center text-[#2563EB] mb-4 relative">
+                 <Calendar size={32} strokeWidth={2} />
+                 <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-white rounded-full border border-[#E5E7EB] flex items-center justify-center shadow-sm text-gray-400">
+                   <Search size={14} strokeWidth={2.5} />
+                 </div>
+               </div>
+               <h3 className="text-lg font-bold text-gray-900 mb-2">No bookings found</h3>
+               <p className="text-sm text-gray-500 mb-8 max-w-xs">We couldn't find any bookings matching your current filter criteria. Try adjusting the dates or search terms.</p>
+               
+               <div className="w-full space-y-3">
+                 <button onClick={() => { resetForm(); setViewMode('create'); }} className="w-full bg-[#1A56DB] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20 active:scale-[0.98]">
+                   <Plus size={18} strokeWidth={2.5} /> Create New Booking
+                 </button>
+                 <button onClick={() => {setFilterSite(''); setFilterEmployee(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); setCurrentPage(1);}} className="w-full bg-white border border-[#E5E7EB] text-gray-700 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-all active:scale-[0.98]">
+                   Clear All Filters
+                 </button>
+               </div>
+             </div>
+           ) : (
+             <div className="flex flex-col gap-4 pb-16">
+               {bookings.map(bkg => (
+                 <div key={bkg.id} onClick={() => handleEdit(bkg, true)} className="bg-white rounded-[16px] p-4 shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-[#E5E7EB] cursor-pointer">
+                   <div className="flex justify-between items-start mb-3 border-b border-[#F3F4F6] pb-3">
+                     <div>
+                       <p className="text-[12px] font-bold text-gray-400">BKG-{10000 + bkg.id}</p>
+                       <p className="text-[14px] font-bold text-gray-900 mt-0.5">{formatDate(bkg.booking_date || bkg.created_at)}</p>
+                     </div>
+                     <div>{getPaymentPill(bkg.total_amount)}</div>
+                   </div>
+                   <div className="mb-4">
+                     <p className="text-[15px] font-extrabold text-[#0D1537] mb-1">{bkg.guest_name}</p>
+                     <p className="text-[12px] font-semibold text-gray-500 flex items-center gap-1.5"><Building2 size={12}/> Room {bkg.room?.room_number || '-'} • {bkg.booking_type}</p>
+                   </div>
+                   <div className="flex items-center justify-between bg-[#F8FAFC] rounded-xl p-3 mb-3 border border-[#F1F5F9]">
+                     <div className="text-center flex-1 border-r border-[#E5E7EB]">
+                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Check-in</p>
+                       <p className="text-[12px] font-bold text-gray-900">{formatDate(bkg.check_in_date)}</p>
+                     </div>
+                     <div className="text-center flex-1">
+                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Check-out</p>
+                       <p className="text-[12px] font-bold text-gray-900">{formatDate(bkg.check_out_date)}</p>
+                     </div>
+                   </div>
+                   <div className="flex justify-between items-center pt-1">
+                     <p className="text-[11px] font-semibold text-gray-400 flex items-center gap-1"><User size={12}/> {bkg.employee?.name || 'System'}</p>
+                     <p className="text-[16px] font-black text-[#2563EB]">₹ {parseFloat(bkg.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 0})}</p>
+                   </div>
+                 </div>
+               ))}
+               
+               {/* Export CSV Floating Button for Mobile */}
+               <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40">
+                 <button onClick={() => exportToCSV(filteredBookings, 'bookings')} className="bg-white border border-[#E5E7EB] text-gray-700 px-6 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.05)] active:scale-95 transition-all">
+                    <Download size={16} /> Export CSV Report
+                 </button>
+               </div>
+             </div>
+           )}
          </div>
          <Pagination 
             currentPage={currentPage}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Users, Calendar, BarChart2, ArrowUp, Link as LinkIcon, Eye } from "lucide-react";
+import { Users, Calendar, BarChart2, ArrowUp, ArrowDown, Link as LinkIcon, Eye } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Legend, PieChart, Pie, Cell } from "recharts";
 import { Link } from "react-router-dom";
 import { jwtDecode } from 'jwt-decode';
@@ -54,10 +54,10 @@ export default function Dashboard() {
   }
 
   const statCards = [
-    { title: "Today's Enquiries", value: metrics.dailyEnquiriesCount, icon: <Users size={20} className="text-[#2563EB]"/>, change: "+ 12% vs yesterday", trend: "up", bg: "bg-blue-600" },
-    { title: "Total Bookings", value: metrics.totalBookingsCount, icon: <Calendar size={20} className="text-[#8B5CF6]"/>, change: "+ 8% vs yesterday", trend: "up", bg: "bg-purple-600" },
-    { title: "Gross Revenue", value: `₹ ${(metrics.totalRevenue/1000).toLocaleString('en-IN', {minimumFractionDigits:1})}k`, icon: <div className="text-[#10B981] font-bold text-lg">₹</div>, change: "+ 15% vs yesterday", trend: "up", bg: "bg-emerald-500" },
-    { title: "Conversion Rate", value: `${metrics.bookingConversionRate}%`, icon: <PieChart size={20} className="text-[#F59E0B]"/>, change: "+ 9% vs yesterday", trend: "up", bg: "bg-amber-500" }
+    { title: "Today's Enquiries", value: metrics.dailyEnquiriesCount, icon: <Users size={20} className="text-[#2563EB]"/>, change: `${metrics.enquiryChange >= 0 ? '+' : ''}${metrics.enquiryChange}% vs yesterday`, trend: metrics.enquiryChange >= 0 ? "up" : "down", bg: "bg-blue-600" },
+    { title: "Total Bookings", value: metrics.totalBookingsCount, icon: <Calendar size={20} className="text-[#8B5CF6]"/>, change: `${metrics.bookingChange >= 0 ? '+' : ''}${metrics.bookingChange}% vs yesterday`, trend: metrics.bookingChange >= 0 ? "up" : "down", bg: "bg-purple-600" },
+    { title: "Gross Revenue", value: `₹ ${(metrics.totalRevenue/1000).toLocaleString('en-IN', {minimumFractionDigits:1})}k`, icon: <div className="text-[#10B981] font-bold text-lg">₹</div>, change: `${metrics.revenueChange >= 0 ? '+' : ''}${metrics.revenueChange}% vs yesterday`, trend: metrics.revenueChange >= 0 ? "up" : "down", bg: "bg-emerald-500" },
+    { title: "Conversion Rate", value: `${metrics.bookingConversionRate}%`, icon: <PieChart size={20} className="text-[#F59E0B]"/>, change: "Current average", trend: "up", bg: "bg-amber-500" }
   ];
 
   const ROOM_COLORS = ['#4ADE80', '#F87171', '#FBBF24', '#A78BFA'];
@@ -69,7 +69,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="max-w-[1600px] mx-auto min-h-[calc(100vh-4rem)] bg-[#F8FAFC] p-5 -m-8 border-l border-[#E5E7EB] flex flex-col gap-4">
+    <div className="max-w-[1600px] mx-auto min-h-[calc(100vh-4rem)] bg-[#F8FAFC] p-4 md:p-5 md:-m-8 border-0 md:border-l border-[#E5E7EB] flex flex-col gap-4">
       {/* Header */}
       <div className="flex justify-between items-center shrink-0">
          <div>
@@ -97,7 +97,7 @@ export default function Dashboard() {
                 <div>
                    <p className="text-gray-900 font-semibold mb-1.5 tracking-wide text-[12px]">{stat.title}</p>
                    <span className={`flex items-center gap-1 text-[10px] font-bold ${stat.trend === 'up' ? 'text-emerald-500' : 'text-red-500'}`}>
-                      {stat.trend === 'up' ? <ArrowUp size={10} strokeWidth={3}/> : null} {stat.change}
+                      {stat.trend === 'up' ? <ArrowUp size={10} strokeWidth={3}/> : <ArrowDown size={10} strokeWidth={3}/>} {stat.change}
                    </span>
                 </div>
               </div>
