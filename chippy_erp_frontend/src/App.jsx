@@ -11,6 +11,8 @@ import PaymentModule from './pages/PaymentModule.jsx';
 import EmployeeManagement from './pages/EmployeeManagement.jsx';
 import PurchaseOrderManagement from './pages/PurchaseOrderManagement.jsx';
 import ProfileSettings from './pages/ProfileSettings.jsx';
+import ScreenRights from './pages/ScreenRights.jsx';
+import ModuleRights from './pages/ModuleRights.jsx';
 
 // Simple mockup pages for now
 const ErrorPage = () => <div className="text-center p-12 text-gray-500">Feature disabled or incomplete.</div>;
@@ -49,6 +51,8 @@ export default function App() {
            </Route>
 
            <Route path="employees" element={<EmployeeManagement />} />
+           <Route path="rbac" element={<ScreenRights />} />
+           <Route path="rbac/permissions/:roleId" element={<ModuleRights />} />
            <Route path="profile" element={<ProfileSettings />} />
         </Route>
       </Routes>

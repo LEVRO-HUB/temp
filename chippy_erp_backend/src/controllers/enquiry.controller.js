@@ -91,7 +91,7 @@ export const updateEnquiry = async (req, res) => {
     
     // Safely structure data for update since not all fields might be provided
     const updateData = { 
-       guest_name, mobile_number, place, email, room_type_requested, 
+       guest_name, mobile_number, place, room_type_requested, 
        no_of_days: no_of_days ? parseInt(no_of_days) : undefined, 
        enquiry_source, remarks, status
     };

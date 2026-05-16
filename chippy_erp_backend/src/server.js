@@ -12,6 +12,8 @@ import dashboardRoutes from './routes/dashboard.routes.js';
 import poRoutes from './routes/pos.routes.js';
 import roleRoutes from './routes/role.routes.js';
 import departmentRoutes from './routes/department.routes.js';
+import moduleRoutes from './routes/module.routes.js';
+import permissionRoutes from './routes/permission.routes.js';
 
 dotenv.config();
 
@@ -22,11 +24,12 @@ app.use(cors({
   origin: (origin, callback) => {
     if (!origin || 
         origin.includes("localhost") || 
+        origin.includes("13.201.124.83") || 
         origin.includes("chippy-erp.pages.dev") || 
         origin.includes("trycloudflare.com")) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error('Not allowed by CORS: ' + origin));
     }
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -51,6 +54,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/pos', poRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/departments', departmentRoutes);
+app.use('/api/modules', moduleRoutes);
+app.use('/api/permissions', permissionRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

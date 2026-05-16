@@ -13,9 +13,9 @@ export default function SalesEnquiry() {
   const [isViewOnly, setIsViewOnly] = useState(false);
 
   const [form, setForm] = useState({
-    guest_name: '', mobile_number: '', place: '', site_id: '', email: '',
-    room_type_requested: '', check_in_date: '', check_out_date: '', no_of_days: '',
-    enquiry_source: '', remarks: '', status: 'New', time: ''
+    guest_name: '', mobile_number: '', place: '', site_id: '',
+    room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '',
+    enquiry_source: 'walk_in', remarks: '', status: 'new', time: ''
   });
 
   const [employees, setEmployees] = useState([]);
@@ -39,7 +39,7 @@ export default function SalesEnquiry() {
       setLoading(true);
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': 'Bearer ' + token };
-      
+
       const queryParams = new URLSearchParams({
         page: currentPage,
         limit,
@@ -52,7 +52,7 @@ export default function SalesEnquiry() {
         fetch(`${API_BASE_URL}/api/locations/sites`, { headers }),
         fetch(`${API_BASE_URL}/api/employees`, { headers })
       ]);
-      
+
       if (resEnq.ok) {
         const result = await resEnq.json();
         setEnquiries(result.data);
@@ -89,14 +89,13 @@ export default function SalesEnquiry() {
       mobile_number: enq.mobile_number,
       place: enq.place || '',
       site_id: enq.site_id || '',
-      email: enq.email || '',
-      room_type_requested: enq.room_type_requested || '',
+      room_type_requested: enq.room_type_requested || 'Room',
       check_in_date: enq.check_in_date ? new Date(enq.check_in_date).toISOString().split('T')[0] : '',
       check_out_date: enq.check_out_date ? new Date(enq.check_out_date).toISOString().split('T')[0] : '',
       no_of_days: enq.no_of_days || '',
-      enquiry_source: enq.enquiry_source || '',
+      enquiry_source: enq.enquiry_source || 'walk_in',
       remarks: enq.remarks || '',
-      status: enq.status || 'New',
+      status: enq.status || 'new',
       time: ''
     });
     setEditId(enq.id);
@@ -105,7 +104,7 @@ export default function SalesEnquiry() {
   };
 
   const resetForm = () => {
-    setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', email: '', room_type_requested: '', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: '', remarks: '', status: 'New', time: '' });
+    setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: 'walk_in', remarks: '', status: 'new', time: '' });
     setEditId(null);
     setIsViewOnly(false);
     setViewMode('list');
@@ -148,7 +147,7 @@ export default function SalesEnquiry() {
 
   if (viewMode === 'create') {
     return (
-      <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] p-6 sm:p-8 -m-8 border-l border-[#E5E7EB]">
+      <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] p-4 md:p-8 md:-m-8 border-0 md:border-l border-[#E5E7EB]">
 
         <div className="flex items-center gap-3 mb-6">
           <button onClick={resetForm} className="p-2 bg-white border border-[#E5E7EB] rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors shadow-sm">
@@ -340,10 +339,6 @@ export default function SalesEnquiry() {
                 <input required type="tel" value={form.mobile_number} onChange={e => setForm({ ...form, mobile_number: e.target.value })} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500 transition-all font-medium" placeholder="Mobile number" />
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><Mail size={14} className="text-[#3B82F6]" /> Email Address</label>
-                <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500 transition-all font-medium" placeholder="Email address" />
-              </div>
-              <div>
                 <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><MapPin size={14} className="text-[#3B82F6]" /> Place / City</label>
                 <input value={form.place} onChange={e => setForm({ ...form, place: e.target.value })} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500 transition-all font-medium" placeholder="Place or city" />
               </div>
@@ -358,10 +353,10 @@ export default function SalesEnquiry() {
                 <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><BedDouble size={14} className="text-[#3B82F6]" /> Room Type Requested</label>
                 <select value={form.room_type_requested} onChange={e => setForm({ ...form, room_type_requested: e.target.value })} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
                   <option value="">Select Room Type</option>
-                  <option value="1 BHK">1 BHK</option>
-                  <option value="2 BHK">2 BHK</option>
-                  <option value="3 BHK">3 BHK</option>
-                  <option value="Room">Standard Room</option>
+                  <option value="OneBHK">1 BHK</option>
+                  <option value="TwoBHK">2 BHK</option>
+                  <option value="ThreeBHK">3 BHK</option>
+                  <option value="Room">Room</option>
                 </select>
               </div>
               <div>
@@ -380,9 +375,10 @@ export default function SalesEnquiry() {
                 <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><PhoneCall size={14} className="text-[#3B82F6]" /> Enquiry Source <span className="text-red-500">*</span></label>
                 <select required value={form.enquiry_source} onChange={e => setForm({ ...form, enquiry_source: e.target.value })} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
                   <option value="">Select Source</option>
-                  <option value="Walk-in">Walk-in</option>
-                  <option value="Phone Call">Phone Call</option>
-                  <option value="Online">Online</option>
+                  <option value="walk_in">Walk-in</option>
+                  <option value="phone_call">Phone Call</option>
+                  <option value="online_platforms">Online Platforms</option>
+                  <option value="referral">Referral</option>
                 </select>
               </div>
               <div>
@@ -392,10 +388,10 @@ export default function SalesEnquiry() {
               <div>
                 <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><Flag size={14} className="text-[#3B82F6]" /> Status <span className="text-red-500">*</span></label>
                 <select required value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
-                  <option value="New">New</option>
-                  <option value="Follow Up">Follow Up</option>
-                  <option value="Converted">Converted</option>
-                  <option value="Lost">Lost</option>
+                  <option value="new">New</option>
+                  <option value="follow_up">Follow Up</option>
+                  <option value="converted">Converted</option>
+                  <option value="lost">Lost</option>
                 </select>
               </div>
               <div>
@@ -421,68 +417,68 @@ export default function SalesEnquiry() {
 
   // LIST VIEW
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
-      <div className="flex justify-between items-end pb-4 border-b border-[#E5E7EB]">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 leading-tight">Sales Enquiries</h1>
-        </div>
-        <div className="flex flex-col items-end gap-3">
-          <button onClick={() => { setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', email: '', room_type_requested: '', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: '', remarks: '', status: 'New', time: '' }); setEditId(null); setIsViewOnly(false); setViewMode('create'); }} className="bg-[#2563EB] text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
-            <Plus size={16} /> Add Enquiry
-          </button>
-        </div>
+    <div className="space-y-6 max-w-[1600px] mx-auto p-4 md:p-0">
+      <div className="flex justify-between items-center pb-4 border-b border-[#E5E7EB]">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight">Sales Enquiries</h1>
+        <button onClick={() => { setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: 'walk_in', remarks: '', status: 'new', time: '' }); setEditId(null); setIsViewOnly(false); setViewMode('create'); }} className="bg-[#1A56DB] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-medium text-xs md:text-sm flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm">
+          <Plus size={16} /> Add Enquiry
+        </button>
       </div>
 
       <div className="bg-white border border-[#E5E7EB] rounded-[12px] shadow-sm flex flex-col">
-        <div className="p-4 border-b border-[#E5E7EB] flex flex-wrap items-center gap-4 bg-gray-50/50 rounded-t-[12px]">
-          <div className="flex items-center gap-2">
-            <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} title="From Date" className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium w-36 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]" />
-            <span className="text-gray-400 text-sm">to</span>
-            <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} title="To Date" className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium w-36 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]" />
+        <div className="p-4 border-b border-[#E5E7EB] bg-gray-50/50 rounded-t-[12px] space-y-4">
+          {/* Top Row: Dates and Search */}
+          <div className="flex flex-col gap-3">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input 
+                type="text" 
+                placeholder="Search guest or mobile..." 
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-10 pr-4 py-2 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg text-sm text-gray-700 outline-none focus:border-[#2563EB]"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <select value={filterSite} onChange={e => setFilterSite(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none">
+                <option>All Sites</option>
+                {sites.map(s => <option key={s.id} value={s.site_name}>{s.site_name}</option>)}
+              </select>
+              
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none">
+                <option>All Status</option>
+                <option>New</option>
+                <option>Follow-up</option>
+                <option>Converted</option>
+                <option>Lost</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2">
+              <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="flex-1 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none focus:border-[#2563EB]" />
+              <button onClick={() => { setFilterSite('All Sites'); setFilterStatus('All Status'); setFilterSource('All Sources'); setFilterEmployee(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); setCurrentPage(1); }} className="px-4 py-2 text-[#2563EB] border border-[#BFDBFE] bg-white hover:bg-blue-50 rounded-lg text-[13px] font-bold transition-colors shadow-sm">
+                Reset
+              </button>
+            </div>
           </div>
 
-          <select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium w-40 outline-none">
-            <option value="">All Employees</option>
-            {employees.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
-          </select>
-
-          <select value={filterSite} onChange={e => setFilterSite(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium w-40 outline-none">
-            <option>All Sites</option>
-            {sites.map(s => <option key={s.id} value={s.site_name}>{s.site_name}</option>)}
-          </select>
-
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium w-40 outline-none">
-            <option>All Status</option>
-            <option>New</option>
-            <option>Follow-up</option>
-            <option>Converted</option>
-            <option>Lost</option>
-          </select>
-
-          <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium w-40 outline-none">
-            <option>All Sources</option>
-            <option>Walk-in</option>
-            <option>Phone Call</option>
-            <option>Online</option>
-          </select>
-
-          <button onClick={() => { setFilterSite('All Sites'); setFilterStatus('All Status'); setFilterSource('All Sources'); setFilterEmployee(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); setCurrentPage(1); }} className="px-5 py-2 text-[#2563EB] border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-lg text-sm font-semibold transition-colors">
-            Reset
-          </button>
-
-          <div className="flex-1 min-w-[200px] relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search guest or mobile..." 
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-10 pr-4 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 outline-none focus:border-[#2563EB]"
-            />
+          {/* Desktop Only: Additional Filters */}
+          <div className="hidden lg:grid grid-cols-4 gap-3">
+            <select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none">
+              <option value="">All Employees</option>
+              {employees.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
+            </select>
+            <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none">
+              <option>All Sources</option>
+              <option>Walk-in</option>
+              <option>Phone Call</option>
+              <option>Online</option>
+            </select>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="text-gray-500 font-semibold border-b border-[#E5E7EB]">
               <tr>
@@ -532,10 +528,57 @@ export default function SalesEnquiry() {
             </tbody>
           </table>
         </div>
-        <Pagination 
-          currentPage={currentPage} 
-          totalPages={pagination.totalPages} 
-          onPageChange={setCurrentPage} 
+
+        {/* MOBILE CARD LIST */}
+        <div className="md:hidden flex flex-col gap-3 p-4 bg-[#F8FAFC]">
+          {loading ? (
+            <div className="text-center py-8 text-sm text-gray-500 font-medium">Loading records...</div>
+          ) : enquiries.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 text-sm">No matching inquiries found.</div>
+          ) : enquiries.map(enq => (
+            <div key={enq.id} onClick={() => handleEdit(enq, true)} className="bg-white p-4 rounded-xl shadow-sm border border-[#E5E7EB] cursor-pointer hover:border-blue-300">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 tracking-wider uppercase mb-0.5">ENTRY DATE & TIME</p>
+                  <p className="text-[13px] font-bold text-gray-900">
+                    {new Date(enq.enquiry_time || enq.created_at).toLocaleDateString('en-GB')} {new Date(enq.enquiry_time || enq.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                <div>{getStatusPill(enq.status)}</div>
+              </div>
+              <div className="mb-3">
+                <p className="text-base font-bold text-[#0D1537] leading-tight">{enq.guest_name}</p>
+                <div className="flex items-center gap-1.5 text-gray-500 mt-1">
+                  <Phone size={12} />
+                  <span className="text-[12px] font-medium">{enq.mobile_number}</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-end border-t border-[#E5E7EB] pt-3">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 tracking-wider">Site</p>
+                  <p className="text-[13px] font-semibold text-gray-900">{enq.site?.site_name || '--'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-gray-400 tracking-wider">Room Type</p>
+                  <p className="text-[13px] font-semibold text-gray-900">{enq.room_type_requested || '--'}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Floating Add Button for Mobile */}
+        <button 
+          onClick={() => { setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: 'walk_in', remarks: '', status: 'new', time: '' }); setEditId(null); setIsViewOnly(false); setViewMode('create'); }}
+          className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-[#2563EB] rounded-2xl shadow-lg shadow-blue-500/30 flex items-center justify-center text-white z-50 hover:bg-blue-700 active:scale-95 transition-all"
+        >
+          <Plus size={28} strokeWidth={2.5} />
+        </button>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={pagination.totalPages}
+          onPageChange={setCurrentPage}
         />
       </div>
     </div>

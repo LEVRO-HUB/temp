@@ -106,7 +106,7 @@ export default function EmployeeManagement() {
 
   if (viewMode === 'create') {
     return (
-      <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] sm:p-8 p-6 -m-8 border-l border-[#E5E7EB]">
+      <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] p-4 md:p-8 md:-m-8 border-0 md:border-l border-[#E5E7EB]">
         
         <div className="flex items-center gap-3 mb-6">
            <button onClick={() => setViewMode('list')} className="p-2 bg-white border border-[#E5E7EB] rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors shadow-sm">

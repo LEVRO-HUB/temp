@@ -5,7 +5,10 @@ import prisma from '../config/prisma.js';
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const employee = await prisma.employee.findUnique({ where: { email } });
+    const employee = await prisma.employee.findUnique({ 
+      where: { email },
+      include: { role_master: true }
+    });
     
     if (!employee) {
       return res.status(401).json({ message: 'Invalid credentials.' });
@@ -20,8 +23,10 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
     
+    const roleName = (employee.role_master?.name || 'Employee').toLowerCase();
+
     const token = jwt.sign(
-      { id: employee.id, role: employee.role, name: employee.name }, 
+      { id: employee.id, role: roleName, name: employee.name, roleId: employee.role_id }, 
       process.env.JWT_SECRET || 'fallback_secret', 
       { expiresIn: '12h' }
     );
@@ -31,7 +36,7 @@ export const login = async (req, res) => {
       user: { 
         id: employee.id, 
         name: employee.name, 
-        role: employee.role, 
+        role: roleName, 
         email: employee.email 
       } 
     });

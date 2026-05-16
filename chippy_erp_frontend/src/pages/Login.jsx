@@ -40,9 +40,9 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F7FE] flex flex-col items-center justify-center p-6 font-sans">
+    <div className="min-h-screen bg-[#F4F7FE] flex flex-col items-center justify-center md:p-6 font-sans">
       
-      <div className="w-full max-w-[1200px] h-[750px] bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] flex overflow-hidden border border-gray-100">
+      <div className="w-full max-w-[1200px] min-h-screen md:min-h-0 md:h-[750px] bg-white md:rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] flex overflow-hidden border-0 md:border border-gray-100">
         
         {/* LEFT PANEL (Visual / Features) */}
         <div className="w-[45%] relative hidden lg:flex flex-col justify-between">
@@ -114,7 +114,7 @@ export default function Login() {
         </div>
 
         {/* RIGHT PANEL (Login Form) */}
-        <div className="flex-1 bg-white flex flex-col justify-center p-8 lg:p-16 border-l border-gray-100 relative z-30 shadow-[-10px_0_30px_rgba(0,0,0,0.02)]">
+        <div className="flex-1 bg-white flex flex-col justify-center p-6 sm:p-8 lg:p-16 border-l border-gray-100 relative z-30 shadow-[-10px_0_30px_rgba(0,0,0,0.02)]">
           <div className="max-w-[400px] mx-auto w-full">
             
             <div className="text-center mb-10">

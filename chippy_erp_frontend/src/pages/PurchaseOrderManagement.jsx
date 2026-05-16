@@ -29,7 +29,7 @@ export default function PurchaseOrderManagement({ tab }) {
     vendor_name: '',
     po_date: new Date().toISOString().split('T')[0],
     expected_delivery: '',
-    priority: 'Normal',
+    priority: 'normal',
     payment_terms: 'Net 30 days',
     delivery_location: 'Loading Bay B, Ground Floor',
     contact_person: '',
@@ -111,10 +111,9 @@ export default function PurchaseOrderManagement({ tab }) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          ...formData,
           site_id: 1, 
           items: lineItems,
-          flag: 0 
+          status: 'pending' 
         })
       });
       if (res.ok) {
@@ -138,7 +137,7 @@ export default function PurchaseOrderManagement({ tab }) {
     }
   };
 
-  const updatePOStatus = async (id, newFlag) => {
+  const updatePOStatus = async (id, newStatus) => {
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE_URL}/api/pos/${id}/status`, {
@@ -147,7 +146,7 @@ export default function PurchaseOrderManagement({ tab }) {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ flag: newFlag })
+        body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
         fetchPOs();
@@ -157,13 +156,13 @@ export default function PurchaseOrderManagement({ tab }) {
     }
   };
 
-  const getStatusBadge = (flag) => {
-    switch(flag) {
-      case 0: return <span className="badge badge-pending">Pending</span>;
-      case 1: return <span className="badge badge-approved">Approved</span>;
-      case 2: return <span className="badge badge-rejected">Rejected</span>;
-      case 3: return <span className="badge badge-draft">Draft</span>;
-      default: return <span className="badge">Unknown</span>;
+  const getStatusBadge = (status) => {
+    switch(status) {
+      case 'pending': return <span className="badge badge-pending">Pending</span>;
+      case 'approved': return <span className="badge badge-approved">Approved</span>;
+      case 'rejected': return <span className="badge badge-rejected">Rejected</span>;
+      case 'draft': return <span className="badge badge-draft">Draft</span>;
+      default: return <span className="badge">{status}</span>;
     }
   };
 
@@ -178,19 +177,19 @@ export default function PurchaseOrderManagement({ tab }) {
         </div>
         <div className="stat-card blue">
           <div className="stat-label">Pending Approval</div>
-          <div className="stat-value">{pos.filter(p => p.flag === 0).length}</div>
+          <div className="stat-value">{pos.filter(p => p.status === 'pending').length}</div>
           <div className="stat-sub">Action required</div>
           <div className="stat-icon"><Clock size={18} /></div>
         </div>
         <div className="stat-card green">
           <div className="stat-label">Approved</div>
-          <div className="stat-value">{pos.filter(p => p.flag === 1).length}</div>
+          <div className="stat-value">{pos.filter(p => p.status === 'approved').length}</div>
           <div className="stat-sub">Ready for delivery</div>
           <div className="stat-icon"><CheckCircle size={18} /></div>
         </div>
         <div className="stat-card red">
           <div className="stat-label">Urgent POs</div>
-          <div className="stat-value">{pos.filter(p => p.priority === 'Urgent' && p.flag === 0).length}</div>
+          <div className="stat-value">{pos.filter(p => p.priority === 'urgent' && p.status === 'pending').length}</div>
           <div className="stat-sub">High priority</div>
           <div className="stat-icon"><AlertCircle size={18} /></div>
         </div>
@@ -221,8 +220,8 @@ export default function PurchaseOrderManagement({ tab }) {
            <div className="card-body flex flex-col gap-1">
               {pos.slice(0, 3).map(po => (
                 <div key={po.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors p-2 rounded-lg">
-                   <div className={`p-2 rounded-lg ${po.flag===1 ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}`}>
-                      {po.flag===1 ? <CheckCircle size={14}/> : <Clock size={14}/>}
+                   <div className={`p-2 rounded-lg ${po.status==='approved' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}`}>
+                      {po.status==='approved' ? <CheckCircle size={14}/> : <Clock size={14}/>}
                    </div>
                    <div className="flex-1">
                       <div className="text-xs font-bold text-gray-900">{po.po_number} - {po.vendor_name}</div>
@@ -291,9 +290,9 @@ export default function PurchaseOrderManagement({ tab }) {
                        <td className="px-6 py-4"><span className="text-xs text-gray-600">{po.department || '--'}</span></td>
                        <td className="px-6 py-4"><span className="text-xs font-medium text-gray-500">{po.items?.length || 0} items</span></td>
                        <td className="px-6 py-4"><div className="amount-cell text-sm">₹{Number(po.total_amount).toLocaleString('en-IN')}</div></td>
-                       <td className="px-6 py-4">{getStatusBadge(po.flag)}</td>
+                       <td className="px-6 py-4">{getStatusBadge(po.status)}</td>
                        <td className="px-6 py-4">
-                          <span className={`badge ${po.priority === 'Urgent' ? 'badge-urgent' : ''}`} style={po.priority !== 'Urgent' ? {color:'#888', background:'#f5f5f5'} : {}}>
+                          <span className={`badge ${po.priority === 'urgent' ? 'badge-urgent' : ''}`} style={po.priority !== 'urgent' ? {color:'#888', background:'#f5f5f5'} : {}}>
                             {po.priority}
                           </span>
                        </td>
@@ -352,9 +351,9 @@ export default function PurchaseOrderManagement({ tab }) {
                    <div className="form-group">
                       <label className="form-label flex items-center gap-2"><AlertCircle size={12}/> Priority Level</label>
                       <select className="form-control" value={formData.priority} onChange={e=>setFormData({...formData, priority: e.target.value})}>
-                         <option>Normal</option>
-                         <option>Urgent</option>
-                         <option>Low</option>
+                         <option value="normal">Normal</option>
+                         <option value="urgent">Urgent</option>
+                         <option value="low">Low</option>
                       </select>
                    </div>
                 </div>
@@ -428,7 +427,7 @@ export default function PurchaseOrderManagement({ tab }) {
   ];
 
   return (
-    <div className="po-module-container !bg-transparent !min-h-0 -m-8">
+    <div className="po-module-container !bg-transparent !min-h-0 p-4 md:p-0 md:-m-8">
       {/* Sub-Module Navigation Bar */}
       <div className="bg-white border-b border-gray-100 px-8 py-0 flex items-center justify-between sticky top-0 z-[20] shadow-sm">
          <div className="flex">
@@ -469,7 +468,7 @@ export default function PurchaseOrderManagement({ tab }) {
            <div className="page-section active">
               <div className="flex items-center justify-between mb-6">
                  <h2 className="text-xl font-bold text-gray-900">Pending Approvals</h2>
-                 <p className="text-xs text-gray-500">{pos.filter(p => p.flag === 0).length} requests require action</p>
+                 <p className="text-xs text-gray-500">{pos.filter(p => p.status === 'pending').length} requests require action</p>
               </div>
               <div className="card">
                  <div className="table-wrap">
@@ -483,7 +482,7 @@ export default function PurchaseOrderManagement({ tab }) {
                           </tr>
                        </thead>
                        <tbody>
-                          {pos.filter(p => p.flag === 0).map(po => (
+                          {pos.filter(p => p.status === 'pending').map(po => (
                             <tr key={po.id}>
                                <td className="px-6 py-4 font-bold">{po.po_number}</td>
                                <td className="px-6 py-4">
@@ -493,13 +492,13 @@ export default function PurchaseOrderManagement({ tab }) {
                                <td className="px-6 py-4">₹{Number(po.total_amount).toLocaleString()}</td>
                                <td className="px-6 py-4">
                                   <div className="flex gap-2">
-                                     <button onClick={() => updatePOStatus(po.id, 1)} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"><Check size={16}/></button>
-                                     <button onClick={() => updatePOStatus(po.id, 2)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"><X size={16}/></button>
+                                     <button onClick={() => updatePOStatus(po.id, 'approved')} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"><Check size={16}/></button>
+                                     <button onClick={() => updatePOStatus(po.id, 'rejected')} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"><X size={16}/></button>
                                   </div>
                                </td>
                             </tr>
                           ))}
-                          {pos.filter(p => p.flag === 0).length === 0 && (
+                          {pos.filter(p => p.status === 'pending').length === 0 && (
                             <tr><td colSpan="4" className="text-center py-20 text-gray-400">All caught up! No pending approvals.</td></tr>
                           )}
                        </tbody>
@@ -582,11 +581,11 @@ export default function PurchaseOrderManagement({ tab }) {
                        </div>
                        <div className="pt-6 border-t border-gray-50">
                           <div className="text-[10px] text-gray-400 uppercase tracking-widest font-bold text-green-600">Approved Payouts</div>
-                          <div className="text-xl font-bold text-gray-900">₹{pos.filter(p=>p.flag===1).reduce((s,p) => s+p.total_amount, 0).toLocaleString()}</div>
+                          <div className="text-xl font-bold text-gray-900">₹{pos.filter(p=>p.status==='approved').reduce((s,p) => s+p.total_amount, 0).toLocaleString()}</div>
                        </div>
                        <div className="pt-6 border-t border-gray-50">
                           <div className="text-[10px] text-gray-400 uppercase tracking-widest font-bold text-amber-600">Pending Authorization</div>
-                          <div className="text-xl font-bold text-gray-900">₹{pos.filter(p=>p.flag===0).reduce((s,p) => s+p.total_amount, 0).toLocaleString()}</div>
+                          <div className="text-xl font-bold text-gray-900">₹{pos.filter(p=>p.status==='pending').reduce((s,p) => s+p.total_amount, 0).toLocaleString()}</div>
                        </div>
                     </div>
                  </div>
