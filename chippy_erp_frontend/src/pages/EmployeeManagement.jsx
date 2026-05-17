@@ -256,23 +256,23 @@ export default function EmployeeManagement() {
 
   // LIST VIEW
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
-      <div className="flex justify-between items-end pb-4 border-b border-[#E5E7EB]">
+    <div className="space-y-6 max-w-[1600px] mx-auto p-4 md:p-0">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-4 border-b border-[#E5E7EB]">
          <div>
            <h1 className="text-2xl font-bold text-gray-900 leading-tight">Employees</h1>
          </div>
-         <div className="flex flex-row items-end gap-3">
-            <button onClick={() => exportToCSV(employees, 'employees')} className="bg-white border-[#E5E7EB] border text-gray-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors shadow-sm">
+         <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
+            <button onClick={() => exportToCSV(employees, 'employees')} className="flex-1 md:flex-none justify-center bg-white border-[#E5E7EB] border text-gray-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors shadow-sm">
                <Download size={16} /> Export CSV
             </button>
-            <button onClick={resetForm} className="bg-[#2563EB] text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
+            <button onClick={resetForm} className="flex-1 md:flex-none justify-center bg-[#2563EB] text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
                <Plus size={16} /> Add Employee
             </button>
          </div>
       </div>
 
       <div className="bg-white border border-[#E5E7EB] rounded-[12px] shadow-sm flex flex-col">
-         <div className="overflow-x-auto">
+         <div className="overflow-x-auto hidden md:block">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="text-gray-500 font-semibold border-b border-[#E5E7EB]">
                 <tr>
@@ -332,6 +332,52 @@ export default function EmployeeManagement() {
                 ))}
               </tbody>
             </table>
+         </div>
+
+         {/* Mobile Card View */}
+         <div className="block md:hidden divide-y divide-[#E5E7EB] bg-white">
+            {loading ? (
+               <div className="p-8 text-center text-gray-500 font-medium">Loading records...</div>
+            ) : employees.length === 0 ? (
+               <div className="p-8 text-center text-gray-500">No employees registered.</div>
+            ) : employees.map(emp => (
+               <div key={emp.id} className="p-4 flex flex-col gap-3">
+                   <div className="flex justify-between items-start">
+                       <div>
+                           <h3 className="font-bold text-gray-900">{emp.name}</h3>
+                           <p className="text-sm font-medium text-gray-600 mt-0.5">{emp.mobile_number}</p>
+                           <p className="text-xs text-gray-500 mt-0.5">{emp.email}</p>
+                       </div>
+                       <span className="bg-green-50 text-green-600 px-2 py-1 rounded border border-green-100 text-[9px] font-bold uppercase tracking-wider">Active</span>
+                   </div>
+                   <div className="flex justify-between items-center text-xs">
+                       <span className="text-gray-600 flex items-center gap-1.5 font-semibold capitalize">
+                          {emp.role?.icon && React.createElement(iconMap[emp.role.icon] || User, {size: 14, className: "text-blue-500"})}
+                          {emp.role?.name || '--'}
+                       </span>
+                       <span className="text-gray-600 flex items-center gap-1.5 font-medium">
+                          {emp.department?.icon && React.createElement(iconMap[emp.department.icon] || Settings, {size: 14, className: "text-emerald-500"})}
+                          {emp.department?.name || '--'}
+                       </span>
+                   </div>
+                   <div className="flex justify-between items-center mt-2 pt-3 border-t border-[#E5E7EB]">
+                       <div className="flex items-center gap-2">
+                           <span className="text-xs font-semibold text-gray-500">Login:</span>
+                           <button 
+                                onClick={() => toggleLoginStatus(emp.id, emp.login_enabled)}
+                                className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-300 ease-in-out cursor-pointer ${emp.login_enabled ? 'bg-[#16A34A]' : 'bg-gray-300'}`}
+                           >
+                                <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${emp.login_enabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                           </button>
+                       </div>
+                       <div className="flex items-center gap-4 text-[#2563EB]">
+                           <button onClick={() => handleEdit(emp, true)} className="flex items-center gap-1 text-xs font-bold hover:text-blue-800"><Eye size={14}/> View</button>
+                           <button onClick={() => handleEdit(emp, false)} className="flex items-center gap-1 text-xs font-bold hover:text-blue-800"><Edit2 size={14}/> Edit</button>
+                           <button className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700"><Trash2 size={14}/> Del</button>
+                       </div>
+                   </div>
+               </div>
+            ))}
          </div>
       </div>
     </div>

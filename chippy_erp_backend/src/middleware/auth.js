@@ -21,7 +21,7 @@ export const authenticateToken = (req, res, next) => {
 // Middleware to enforce Admin role
 export const requireAdmin = (req, res, next) => {
   const role = req.user?.role?.toLowerCase();
-  if (role === 'admin' || role === 'super admin') {
+  if (role === 'admin' || role === 'super admin' || role === 'developer') {
     next();
   } else {
     res.status(403).json({ message: 'Access denied. Administrator privileges required.' });
@@ -31,7 +31,7 @@ export const requireAdmin = (req, res, next) => {
 // Middleware to enforce Admin or Manager roles
 export const requireManagerOrAdmin = (req, res, next) => {
   const role = req.user?.role?.toLowerCase();
-  if (role === 'admin' || role === 'super admin' || role === 'manager') {
+  if (role === 'admin' || role === 'super admin' || role === 'manager' || role === 'developer') {
     next();
   } else {
     res.status(403).json({ message: 'Access denied. Manager privileges required.' });
