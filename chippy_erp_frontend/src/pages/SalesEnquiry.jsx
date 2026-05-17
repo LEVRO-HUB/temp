@@ -356,6 +356,7 @@ export default function SalesEnquiry() {
                   <option value="OneBHK">1 BHK</option>
                   <option value="TwoBHK">2 BHK</option>
                   <option value="ThreeBHK">3 BHK</option>
+                  <option value="Villa">Villa</option>
                   <option value="Room">Room</option>
                 </select>
               </div>

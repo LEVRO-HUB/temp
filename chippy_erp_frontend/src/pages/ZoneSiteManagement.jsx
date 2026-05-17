@@ -20,7 +20,7 @@ export default function ZoneSiteManagement() {
   const [zoneCode, setZoneCode] = useState('');
   const [siteForm, setSiteForm] = useState({ 
     site_name: '', zone_id: '', site_type: 'hotel', location: '', full_address: '', 
-    unit_code: '', total_rooms: ''
+    total_rooms: ''
   });
   const [employees, setEmployees] = useState([]);
 
@@ -77,7 +77,7 @@ export default function ZoneSiteManagement() {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({...siteForm, zone_id: parseInt(siteForm.zone_id), total_rooms: parseInt(siteForm.total_rooms)})
     });
-    setSiteForm({ site_name: '', zone_id: '', site_type: 'hotel', location: '', full_address: '', unit_code: '', total_rooms: '' });
+    setSiteForm({ site_name: '', zone_id: '', site_type: 'hotel', location: '', full_address: '', total_rooms: '' });
     setEditId(null);
     setViewMode('list');
     fetchData();
@@ -95,7 +95,7 @@ export default function ZoneSiteManagement() {
     setSiteForm({
       site_name: s.site_name, zone_id: s.zone_id, site_type: s.site_type, 
       location: s.location || '', full_address: s.full_address || '', 
-      unit_code: s.unit_code || '', total_rooms: s.total_rooms || ''
+      total_rooms: s.total_rooms || ''
     });
     setEditId(s.id);
     setIsViewOnly(viewOnly);
@@ -103,7 +103,7 @@ export default function ZoneSiteManagement() {
   };
 
   const resetZoneForm = () => { setEditId(null); setIsViewOnly(false); setZoneName(''); setZoneCode(''); setViewMode('createZone'); };
-  const resetSiteForm = () => { setEditId(null); setIsViewOnly(false); setSiteForm({ site_name: '', zone_id: '', site_type: 'hotel', location: '', full_address: '', unit_code: '', total_rooms: '' }); setViewMode('createSite'); };
+  const resetSiteForm = () => { setEditId(null); setIsViewOnly(false); setSiteForm({ site_name: '', zone_id: '', site_type: 'hotel', location: '', full_address: '', total_rooms: '' }); setViewMode('createSite'); };
 
   if (viewMode === 'createZone') {
     return (
@@ -212,10 +212,7 @@ export default function ZoneSiteManagement() {
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Address</label>
                   <input value={siteForm.full_address} onChange={e=>setSiteForm({...siteForm, full_address: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-900 outline-none focus:border-[#2563EB] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500" placeholder="Complete address" />
                </div>
-               <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Flat/Room Prefix</label>
-                  <input value={siteForm.unit_code} onChange={e=>setSiteForm({...siteForm, unit_code: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-900 outline-none focus:border-[#2563EB] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500" placeholder="e.g. A-" />
-               </div>
+
                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Total Rooms</label>
                   <input type="number" min="1" value={siteForm.total_rooms} onChange={e=>setSiteForm({...siteForm, total_rooms: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-900 outline-none focus:border-[#2563EB] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500" placeholder="Total expected" />
