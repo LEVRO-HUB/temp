@@ -52,11 +52,20 @@ export default function DashboardLayout() {
   }, []);
 
   const hasAccess = (moduleKey) => {
-    if (user.role?.toLowerCase() === 'super admin') return true;
+    if (user.role?.toLowerCase() === 'developer') return true;
     const hasPerm = permissions.find(p => p.module?.module_key === moduleKey)?.can_view || false;
-    console.log(`Access Check [${moduleKey}]:`, hasPerm);
     return hasPerm;
   };
+
+  useEffect(() => {
+    if (!loadingPerms && location.pathname === '/dashboard' && !hasAccess('dashboard')) {
+      // Find the first module they DO have access to
+      const firstAvailable = menuSections.find(s => s.items.some(i => hasAccess(i.key)))?.items.find(i => hasAccess(i.key));
+      if (firstAvailable) {
+        navigate(firstAvailable.path, { replace: true });
+      }
+    }
+  }, [location.pathname, loadingPerms, permissions, user]);
 
   const menuSections = [
     {
@@ -251,20 +260,26 @@ export default function DashboardLayout() {
 
       {/* MOBILE BOTTOM NAVIGATION */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#F8FAFC] border-t border-[#E5E7EB] flex justify-between items-center px-6 py-2 z-40 pb-safe">
-        <Link to="/dashboard" className={`flex flex-col items-center gap-1 ${location.pathname === '/dashboard' ? 'text-[#2563EB]' : 'text-gray-500'}`}>
-          <Home size={20} strokeWidth={2.5} />
-          <span className="text-[10px] font-bold tracking-wide">Home</span>
-        </Link>
-        <Link to="/enquiries" className={`flex flex-col items-center gap-1 ${location.pathname === '/enquiries' ? 'text-[#2563EB]' : 'text-gray-500'}`}>
-          <BarChart3 size={20} strokeWidth={2.5} />
-          <span className="text-[10px] font-bold tracking-wide">Sales</span>
-        </Link>
-        <Link to="/bookings" className={`flex flex-col items-center justify-center -mt-4 relative`}>
-          <div className={`w-12 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg ${location.pathname === '/bookings' ? 'bg-[#2563EB] shadow-blue-500/30' : 'bg-[#1A56DB]'}`}>
-            <CalendarDays size={20} strokeWidth={2.5} />
-          </div>
-          <span className={`text-[10px] font-bold tracking-wide mt-1 ${location.pathname === '/bookings' ? 'text-[#2563EB]' : 'text-gray-500'}`}>Bookings</span>
-        </Link>
+        {hasAccess('dashboard') && (
+          <Link to="/dashboard" className={`flex flex-col items-center gap-1 ${location.pathname === '/dashboard' ? 'text-[#2563EB]' : 'text-gray-500'}`}>
+            <Home size={20} strokeWidth={2.5} />
+            <span className="text-[10px] font-bold tracking-wide">Home</span>
+          </Link>
+        )}
+        {hasAccess('enquiries') && (
+          <Link to="/enquiries" className={`flex flex-col items-center gap-1 ${location.pathname === '/enquiries' ? 'text-[#2563EB]' : 'text-gray-500'}`}>
+            <BarChart3 size={20} strokeWidth={2.5} />
+            <span className="text-[10px] font-bold tracking-wide">Sales</span>
+          </Link>
+        )}
+        {hasAccess('bookings') && (
+          <Link to="/bookings" className={`flex flex-col items-center justify-center -mt-4 relative`}>
+            <div className={`w-12 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg ${location.pathname === '/bookings' ? 'bg-[#2563EB] shadow-blue-500/30' : 'bg-[#1A56DB]'}`}>
+              <CalendarDays size={20} strokeWidth={2.5} />
+            </div>
+            <span className={`text-[10px] font-bold tracking-wide mt-1 ${location.pathname === '/bookings' ? 'text-[#2563EB]' : 'text-gray-500'}`}>Bookings</span>
+          </Link>
+        )}
         <button onClick={() => setIsSidebarOpen(true)} className="flex flex-col items-center gap-1 text-gray-500">
           <MoreHorizontal size={20} strokeWidth={2.5} />
           <span className="text-[10px] font-bold tracking-wide">More</span>

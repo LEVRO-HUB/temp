@@ -243,19 +243,19 @@ export default function ZoneSiteManagement() {
 
   // LIST VIEW
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
-      <div className="flex justify-between items-end pb-4 border-b border-[#E5E7EB]">
+    <div className="space-y-6 max-w-[1600px] mx-auto p-4 md:p-0">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-4 border-b border-[#E5E7EB]">
          <div>
            <h1 className="text-2xl font-bold text-gray-900 leading-tight">Zones & Sites</h1>
          </div>
-         <div className="flex items-center gap-3">
-            <button onClick={() => exportToCSV(activeTab === 'zones' ? zones : sites, activeTab)} className="bg-white border-[#E5E7EB] border text-gray-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors shadow-sm">
+         <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
+            <button onClick={() => exportToCSV(activeTab === 'zones' ? zones : sites, activeTab)} className="flex-1 md:flex-none justify-center bg-white border-[#E5E7EB] border text-gray-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors shadow-sm">
                <Download size={16} /> Export CSV
             </button>
-            <button onClick={resetZoneForm} className="bg-white border-[#E5E7EB] border text-gray-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors shadow-sm">
+            <button onClick={resetZoneForm} className="flex-1 md:flex-none justify-center bg-white border-[#E5E7EB] border text-gray-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors shadow-sm">
                <Map size={16} /> Add Zone
             </button>
-            <button onClick={resetSiteForm} className="bg-[#2563EB] text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
+            <button onClick={resetSiteForm} className="w-full md:w-auto justify-center bg-[#2563EB] text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
                <Building2 size={16} /> Add Site
             </button>
          </div>
@@ -278,7 +278,7 @@ export default function ZoneSiteManagement() {
             </button>
          </div>
 
-         <div className="overflow-x-auto">
+         <div className="overflow-x-auto hidden md:block">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="text-gray-500 font-semibold border-b border-[#E5E7EB] bg-gray-50/50">
                 {activeTab === 'zones' ? (
@@ -345,6 +345,54 @@ export default function ZoneSiteManagement() {
                 )}
               </tbody>
             </table>
+         </div>
+
+         {/* Mobile Card View */}
+         <div className="block md:hidden divide-y divide-[#E5E7EB] bg-white">
+             {loading ? (
+                 <div className="p-8 text-center text-gray-500 font-medium">Loading {activeTab}...</div>
+             ) : activeTab === 'zones' ? (
+                 zones.length === 0 ? <div className="p-8 text-center text-gray-500">No zones defined.</div> :
+                 zones.map(z => (
+                     <div key={z.id} className="p-4 flex flex-col gap-3">
+                         <div className="flex justify-between items-start">
+                             <div>
+                                 <h3 className="font-bold text-gray-900">{z.zone_name}</h3>
+                                 <p className="text-xs text-gray-500 font-bold mt-0.5">#ZN-{String(z.id).padStart(3,'0')} • {z.zone_code || z.zone_name.slice(0,3)}</p>
+                             </div>
+                             <span className="bg-green-50 text-green-600 px-2 py-1 rounded border border-green-100 text-[9px] font-bold uppercase tracking-wider">Active</span>
+                         </div>
+                         <div className="flex justify-end items-center gap-3 mt-2 pt-3 border-t border-[#E5E7EB] text-[#2563EB]">
+                             <button onClick={() => handleEditZone(z, true)} className="flex items-center gap-1 text-xs font-bold hover:text-blue-800"><Eye size={14}/> View</button>
+                             <button onClick={() => handleEditZone(z, false)} className="flex items-center gap-1 text-xs font-bold hover:text-blue-800"><Edit2 size={14}/> Edit</button>
+                         </div>
+                     </div>
+                 ))
+             ) : (
+                 sites.length === 0 ? <div className="p-8 text-center text-gray-500">No sites mapped.</div> :
+                 sites.map(s => (
+                     <div key={s.id} className="p-4 flex flex-col gap-3">
+                         <div className="flex justify-between items-start">
+                             <div>
+                                 <h3 className="font-bold text-gray-900">{s.site_name}</h3>
+                                 <p className="text-xs text-gray-500 mt-0.5">{s.location || 'N/A'}</p>
+                             </div>
+                             <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded border border-gray-200 text-[9px] font-bold uppercase tracking-wider capitalize">{s.site_type}</span>
+                         </div>
+                         <div className="flex justify-between items-center text-xs">
+                             <span className="text-gray-600"><span className="font-bold text-gray-900">Zone:</span> {s.zone?.zone_name}</span>
+                             <span className="text-gray-600"><span className="font-bold text-gray-900">Rooms:</span> {s.total_rooms}</span>
+                         </div>
+                         <div className="flex justify-between items-center mt-2 pt-3 border-t border-[#E5E7EB]">
+                             <button onClick={() => navigate('/rooms', { state: { autoOpenCreate: true, prefilledSiteId: s.id, prefilledZoneId: s.zone_id } })} className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-800 bg-emerald-50 px-2 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors"><DoorOpen size={14}/> Add Room</button>
+                             <div className="flex items-center gap-3 text-[#2563EB]">
+                                 <button onClick={() => handleEditSite(s, true)} className="flex items-center gap-1 text-xs font-bold hover:text-blue-800"><Eye size={14}/> View</button>
+                                 <button onClick={() => handleEditSite(s, false)} className="flex items-center gap-1 text-xs font-bold hover:text-blue-800"><Edit2 size={14}/> Edit</button>
+                             </div>
+                         </div>
+                     </div>
+                 ))
+             )}
          </div>
       </div>
     </div>
