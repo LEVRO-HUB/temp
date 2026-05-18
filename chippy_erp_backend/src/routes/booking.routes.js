@@ -1,22 +1,12 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
-import {
-  getBookings,
-  getAvailableRooms,
-  createBooking,
-  updateBooking,
-  updateBookingStatus,
-  deleteBooking,
-} from '../controllers/booking.controller.js';
+import { getBookings, createBooking, updateBooking } from '../controllers/booking.controller.js';
 
 const router = express.Router();
-router.use(authenticateToken);
+router.use(authenticateToken); 
 
-router.get('/',                       getBookings);
-router.get('/available-rooms',        getAvailableRooms);   // ✅ NEW — availability check
-router.post('/',                      createBooking);
-router.put('/:id',                    updateBooking);
-router.patch('/:id/status',           updateBookingStatus); // ✅ NEW — status transitions
-router.delete('/:id',                 deleteBooking);       // ✅ NEW — soft delete
+router.get('/', getBookings);
+router.post('/', createBooking);
+router.put('/:id', updateBooking);
 
 export default router;
