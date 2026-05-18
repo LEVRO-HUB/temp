@@ -104,6 +104,28 @@ export default function EmployeeManagement() {
     fetchEmployees();
   }
 
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Are you sure you want to delete employee "${name}"?`)) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE_URL}/api/employees/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        fetchEmployees();
+      } else {
+        const err = await res.json();
+        alert(err.message || "Failed to delete employee");
+      }
+    } catch (err) {
+      console.error("Failed to delete employee", err);
+      alert("An error occurred while deleting the employee.");
+    }
+  };
+
   if (viewMode === 'create') {
     return (
       <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] p-4 md:p-8 md:-m-8 border-0 md:border-l border-[#E5E7EB]">
@@ -293,13 +315,18 @@ export default function EmployeeManagement() {
                    <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-500">No employees registered.</td></tr>
                 ) : employees.map(emp => (
                   <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-gray-900 font-bold">{emp.name}</td>
+                    <td className="px-6 py-4">
+                      <div className="text-gray-900 font-bold">{emp.name}</div>
+                      <div className="text-xs text-blue-600 font-semibold capitalize mt-0.5">
+                        {emp.role_master?.name || (typeof emp.role === 'string' ? emp.role : 'Employee')}
+                      </div>
+                    </td>
                     <td className="px-6 py-4">{emp.mobile_number}</td>
                     <td className="px-6 py-4 text-gray-500">{emp.email}</td>
                     <td className="px-6 py-4 font-medium capitalize text-gray-700">
                       <div className="flex items-center gap-2">
-                        {emp.role?.icon && React.createElement(iconMap[emp.role.icon] || User, {size: 14, className: "text-blue-500"})}
-                        {emp.role?.name || '--'}
+                        {emp.role_master?.icon && React.createElement(iconMap[emp.role_master.icon] || User, {size: 14, className: "text-blue-500"})}
+                        {emp.role_master?.name || (typeof emp.role === 'string' ? emp.role : '--')}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -325,7 +352,7 @@ export default function EmployeeManagement() {
                        <div className="flex items-center justify-end gap-3 text-[#2563EB]">
                           <button onClick={() => handleEdit(emp, true)} className="hover:text-blue-800"><Eye size={16}/></button>
                           <button onClick={() => handleEdit(emp, false)} className="hover:text-blue-800"><Edit2 size={16}/></button>
-                          <button className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
+                          <button onClick={() => handleDelete(emp.id, emp.name)} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
                        </div>
                     </td>
                   </tr>
@@ -345,15 +372,18 @@ export default function EmployeeManagement() {
                    <div className="flex justify-between items-start">
                        <div>
                            <h3 className="font-bold text-gray-900">{emp.name}</h3>
-                           <p className="text-sm font-medium text-gray-600 mt-0.5">{emp.mobile_number}</p>
+                           <p className="text-xs text-blue-600 font-semibold capitalize mt-0.5">
+                              {emp.role_master?.name || (typeof emp.role === 'string' ? emp.role : 'Employee')}
+                           </p>
+                           <p className="text-sm font-medium text-gray-600 mt-1">{emp.mobile_number}</p>
                            <p className="text-xs text-gray-500 mt-0.5">{emp.email}</p>
                        </div>
                        <span className="bg-green-50 text-green-600 px-2 py-1 rounded border border-green-100 text-[9px] font-bold uppercase tracking-wider">Active</span>
                    </div>
                    <div className="flex justify-between items-center text-xs">
                        <span className="text-gray-600 flex items-center gap-1.5 font-semibold capitalize">
-                          {emp.role?.icon && React.createElement(iconMap[emp.role.icon] || User, {size: 14, className: "text-blue-500"})}
-                          {emp.role?.name || '--'}
+                          {emp.role_master?.icon && React.createElement(iconMap[emp.role_master.icon] || User, {size: 14, className: "text-blue-500"})}
+                          {emp.role_master?.name || (typeof emp.role === 'string' ? emp.role : '--')}
                        </span>
                        <span className="text-gray-600 flex items-center gap-1.5 font-medium">
                           {emp.department?.icon && React.createElement(iconMap[emp.department.icon] || Settings, {size: 14, className: "text-emerald-500"})}
@@ -373,7 +403,7 @@ export default function EmployeeManagement() {
                        <div className="flex items-center gap-4 text-[#2563EB]">
                            <button onClick={() => handleEdit(emp, true)} className="flex items-center gap-1 text-xs font-bold hover:text-blue-800"><Eye size={14}/> View</button>
                            <button onClick={() => handleEdit(emp, false)} className="flex items-center gap-1 text-xs font-bold hover:text-blue-800"><Edit2 size={14}/> Edit</button>
-                           <button className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700"><Trash2 size={14}/> Del</button>
+                           <button onClick={() => handleDelete(emp.id, emp.name)} className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700"><Trash2 size={14}/> Del</button>
                        </div>
                    </div>
                </div>
