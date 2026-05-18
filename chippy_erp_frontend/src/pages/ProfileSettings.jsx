@@ -158,7 +158,10 @@ export default function ProfileSettings() {
           </button>
         </div>
         <h2 className="mt-4 text-xl font-bold text-gray-900">{user.name}</h2>
-        <p className="text-gray-500 text-sm font-medium">{user.email}</p>
+        <p className="text-xs text-blue-600 font-semibold capitalize mt-0.5">
+          {user.role_master?.name || (typeof user.role === 'string' ? user.role : 'Employee')}
+        </p>
+        <p className="text-gray-500 text-sm font-medium mt-1">{user.email}</p>
       </div>
 
       <div className="space-y-8">

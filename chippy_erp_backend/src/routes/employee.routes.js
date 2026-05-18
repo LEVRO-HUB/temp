@@ -8,7 +8,8 @@ import {
   toggleLoginAccess,
   getCurrentEmployee,
   updateCurrentEmployee,
-  changePassword
+  changePassword,
+  deleteEmployee
 } from '../controllers/employee.controller.js';
 
 const router = express.Router();
@@ -27,6 +28,7 @@ router.get('/:id', getEmployeeById);
 // Only admins can create or update employees entirely
 router.post('/', requireAdmin, createEmployee);
 router.put('/:id', requireAdmin, updateEmployee);
+router.delete('/:id', requireAdmin, deleteEmployee);
 
 // Specific route for enabling/disabling login access (Admin only)
 router.patch('/:id/login-access', requireAdmin, toggleLoginAccess);

@@ -193,3 +193,62 @@ export const changePassword = async (req, res) => {
     res.status(500).json({ error: 'Failed to change password' });
   }
 };
+
+export const deleteEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const employeeId = parseInt(id);
+
+    // Prevent deleting oneself
+    if (employeeId === req.user.id) {
+      return res.status(400).json({ message: "You cannot delete your own account." });
+    }
+
+    // Check if employee exists
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId }
+    });
+    
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Check dependencies (transactions they created)
+    const hasDependencies = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: {
+        enquiries: { take: 1 },
+        bookings: { take: 1 },
+        purchaseOrders: { take: 1 },
+        paymentsCreated: { take: 1 }
+      }
+    });
+
+    if (
+      hasDependencies.enquiries.length > 0 ||
+      hasDependencies.bookings.length > 0 ||
+      hasDependencies.purchaseOrders.length > 0 ||
+      hasDependencies.paymentsCreated.length > 0
+    ) {
+      // Soft delete: deactivate account
+      await prisma.employee.update({
+        where: { id: employeeId },
+        data: {
+          is_active: false,
+          login_enabled: false
+        }
+      });
+      return res.json({ message: "Employee has historical transactions. Account has been deactivated and login disabled to preserve records." });
+    }
+
+    // Hard delete if no dependencies
+    await prisma.employee.delete({
+      where: { id: employeeId }
+    });
+
+    res.json({ message: "Employee deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to delete employee" });
+  }
+};
