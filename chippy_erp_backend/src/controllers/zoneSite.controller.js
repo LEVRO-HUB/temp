@@ -14,7 +14,10 @@ export const createZone = async (req, res) => {
   try {
     const { zone_name, zone_code } = req.body;
     const zone = await prisma.zone.create({
-      data: { zone_name, zone_code }
+      data: { 
+        zone_name, 
+        zone_code: zone_code || null 
+      }
     });
     res.status(201).json(zone);
   } catch (error) {
@@ -29,7 +32,10 @@ export const updateZone = async (req, res) => {
     const { zone_name, zone_code } = req.body;
     const zone = await prisma.zone.update({
       where: { id: parseInt(id) },
-      data: { zone_name, zone_code }
+      data: { 
+        zone_name, 
+        zone_code: zone_code || null 
+      }
     });
     res.json(zone);
   } catch (error) {
@@ -50,6 +56,10 @@ export const getSites = async (req, res) => {
 export const createSite = async (req, res) => {
   try {
     const { site_name, zone_id, site_type, location, total_rooms, unit_code } = req.body;
+    
+    // Auto-generate a unit_code if one isn't provided
+    const finalUnitCode = unit_code || (site_name.substring(0, 3).toUpperCase() + '-' + Math.floor(Math.random() * 1000));
+    
     const site = await prisma.site.create({
       data: {
         site_name, 
@@ -57,7 +67,7 @@ export const createSite = async (req, res) => {
         site_type, // Enum: hotel, service_apartment
         location,
         total_rooms: parseInt(total_rooms) || 0,
-        unit_code
+        unit_code: finalUnitCode
       }
     });
     res.status(201).json(site);
@@ -71,16 +81,22 @@ export const updateSite = async (req, res) => {
   try {
     const { id } = req.params;
     const { site_name, zone_id, site_type, location, total_rooms, unit_code } = req.body;
+    
+    const updateData = {
+      site_name, 
+      zone_id: parseInt(zone_id), 
+      site_type, 
+      location,
+      total_rooms: parseInt(total_rooms) || 0,
+    };
+    
+    if (unit_code) {
+      updateData.unit_code = unit_code;
+    }
+    
     const site = await prisma.site.update({
       where: { id: parseInt(id) },
-      data: {
-        site_name, 
-        zone_id: parseInt(zone_id), 
-        site_type, 
-        location,
-        total_rooms: parseInt(total_rooms) || 0,
-        unit_code
-      }
+      data: updateData
     });
     res.json(site);
   } catch (error) {
