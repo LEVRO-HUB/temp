@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Eye, Edit2, Calendar, ArrowLeft, User, Phone, Mail, MapPin, Building2, BedDouble, Clock, PhoneCall, Clock3, Flag, FileText, Info, X, Search } from 'lucide-react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import Pagination from '../components/Pagination';
 import API_BASE_URL from '../config';
 
 export default function SalesEnquiry() {
+  const location = useLocation();
   const [enquiries, setEnquiries] = useState([]);
   const [sites, setSites] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [viewMode, setViewMode] = useState('list');
@@ -13,10 +16,56 @@ export default function SalesEnquiry() {
   const [isViewOnly, setIsViewOnly] = useState(false);
 
   const [form, setForm] = useState({
-    guest_name: '', mobile_number: '', place: '', site_id: '',
-    room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '',
-    enquiry_source: 'walk_in', remarks: '', status: 'new', time: ''
+    guest_name: '',
+    mobile_number: '',
+    place: '',
+    site_id: '',
+    room_type_requested: 'Room',
+    check_in_date: '',
+    check_out_date: '',
+    no_of_days: '',
+    enquiry_source: 'walk_in',
+    remarks: '',
+    status: 'new',
+    time: ''
   });
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const mode = searchParams.get('mode') || 'list';
+    const id = searchParams.get('id') ? parseInt(searchParams.get('id')) : null;
+    const viewOnly = searchParams.get('view') === 'true';
+
+    setViewMode(mode);
+    setEditId(id);
+    setIsViewOnly(viewOnly);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const id = searchParams.get('id') ? parseInt(searchParams.get('id')) : null;
+    if (id && enquiries.length > 0) {
+      const enq = enquiries.find(e => e.id == id);
+      if (enq) {
+        setForm({
+          guest_name: enq.guest_name,
+          mobile_number: enq.mobile_number,
+          place: enq.place || '',
+          site_id: enq.site_id || '',
+          room_type_requested: enq.room_type_requested || 'Room',
+          check_in_date: enq.check_in_date ? new Date(enq.check_in_date).toISOString().split('T')[0] : '',
+          check_out_date: enq.check_out_date ? new Date(enq.check_out_date).toISOString().split('T')[0] : '',
+          no_of_days: enq.no_of_days || '',
+          enquiry_source: enq.enquiry_source || 'walk_in',
+          remarks: enq.remarks || '',
+          status: enq.status || 'new',
+          time: ''
+        });
+      }
+    } else if (!id) {
+      setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: 'walk_in', remarks: '', status: 'new', time: '' });
+    }
+  }, [searchParams, enquiries]);
 
   const [employees, setEmployees] = useState([]);
   const [filterSite, setFilterSite] = useState('All Sites');
@@ -34,6 +83,8 @@ export default function SalesEnquiry() {
     fetchData();
   }, [currentPage, filterStatus, searchTerm]); // Refresh on page or major filter change
 
+
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -47,10 +98,11 @@ export default function SalesEnquiry() {
         search: searchTerm
       });
 
-      const [resEnq, resSites, resEmps] = await Promise.all([
+      const [resEnq, resSites, resEmps, resRooms] = await Promise.all([
         fetch(`${API_BASE_URL}/api/enquiries?${queryParams}`, { headers }),
         fetch(`${API_BASE_URL}/api/locations/sites`, { headers }),
-        fetch(`${API_BASE_URL}/api/employees`, { headers })
+        fetch(`${API_BASE_URL}/api/employees`, { headers }),
+        fetch(`${API_BASE_URL}/api/rooms`, { headers })
       ]);
 
       if (resEnq.ok) {
@@ -60,6 +112,7 @@ export default function SalesEnquiry() {
       }
       if (resSites.ok) setSites(await resSites.json());
       if (resEmps.ok) setEmployees(await resEmps.json());
+      if (resRooms.ok) setRooms(await resRooms.json());
     } finally {
       setLoading(false);
     }
@@ -67,7 +120,10 @@ export default function SalesEnquiry() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isViewOnly) return setViewMode('list');
+    if (isViewOnly) {
+      setSearchParams({});
+      return;
+    }
 
     const token = localStorage.getItem('token');
     const method = editId ? 'PUT' : 'POST';
@@ -84,30 +140,11 @@ export default function SalesEnquiry() {
   };
 
   const handleEdit = (enq, viewOnly = false) => {
-    setForm({
-      guest_name: enq.guest_name,
-      mobile_number: enq.mobile_number,
-      place: enq.place || '',
-      site_id: enq.site_id || '',
-      room_type_requested: enq.room_type_requested || 'Room',
-      check_in_date: enq.check_in_date ? new Date(enq.check_in_date).toISOString().split('T')[0] : '',
-      check_out_date: enq.check_out_date ? new Date(enq.check_out_date).toISOString().split('T')[0] : '',
-      no_of_days: enq.no_of_days || '',
-      enquiry_source: enq.enquiry_source || 'walk_in',
-      remarks: enq.remarks || '',
-      status: enq.status || 'new',
-      time: ''
-    });
-    setEditId(enq.id);
-    setIsViewOnly(viewOnly);
-    setViewMode('create');
+    setSearchParams({ mode: 'create', id: enq.id.toString(), view: viewOnly ? 'true' : 'false' });
   };
 
   const resetForm = () => {
-    setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: 'walk_in', remarks: '', status: 'new', time: '' });
-    setEditId(null);
-    setIsViewOnly(false);
-    setViewMode('list');
+    setSearchParams({});
   };
 
   const getStatusPill = (status) => {
@@ -344,7 +381,7 @@ export default function SalesEnquiry() {
               </div>
               <div>
                 <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><Building2 size={14} className="text-[#3B82F6]" /> Site <span className="text-red-500">*</span></label>
-                <select required value={form.site_id} onChange={e => setForm({ ...form, site_id: e.target.value })} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
+                <select required value={form.site_id} onChange={e => setForm({ ...form, site_id: e.target.value, room_type_requested: '' })} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
                   <option value="">Select Site</option>
                   {sites.map(s => <option key={s.id} value={s.id}>{s.site_name}</option>)}
                 </select>
@@ -353,11 +390,34 @@ export default function SalesEnquiry() {
                 <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><BedDouble size={14} className="text-[#3B82F6]" /> Room Type Requested</label>
                 <select value={form.room_type_requested} onChange={e => setForm({ ...form, room_type_requested: e.target.value })} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
                   <option value="">Select Room Type</option>
-                  <option value="OneBHK">1 BHK</option>
-                  <option value="TwoBHK">2 BHK</option>
-                  <option value="ThreeBHK">3 BHK</option>
-                  <option value="Villa">Villa</option>
-                  <option value="Room">Room</option>
+                  {(() => {
+                    const selectedSite = sites.find(s => s.id === parseInt(form.site_id));
+                    if (!selectedSite) return null;
+                    
+                    if (selectedSite.site_type === 'service_apartment') {
+                      return (
+                        <>
+                          <option value="1BHK">1BHK</option>
+                          <option value="2BHK">2BHK</option>
+                          <option value="3BHK">3BHK</option>
+                          <option value="Home Stay">Home Stay</option>
+                          <option value="Room">Room</option>
+                          <option value="Villa">Villa</option>
+                        </>
+                      );
+                    } else {
+                      return (
+                        <>
+                          <option value="Deluxe">Deluxe</option>
+                          <option value="Home Stay">Home Stay</option>
+                          <option value="King Studio">King Studio</option>
+                          <option value="Room">Room</option>
+                          <option value="Standard">Standard</option>
+                          <option value="Superior King">Superior King</option>
+                        </>
+                      );
+                    }
+                  })()}
                 </select>
               </div>
               <div>
@@ -421,7 +481,7 @@ export default function SalesEnquiry() {
     <div className="space-y-6 max-w-[1600px] mx-auto p-4 md:p-0">
       <div className="flex justify-between items-center pb-4 border-b border-[#E5E7EB]">
         <h1 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight">Sales Enquiries</h1>
-        <button onClick={() => { setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: 'walk_in', remarks: '', status: 'new', time: '' }); setEditId(null); setIsViewOnly(false); setViewMode('create'); }} className="bg-[#1A56DB] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-medium text-xs md:text-sm flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm">
+        <button onClick={() => setSearchParams({ mode: 'create' })} className="bg-[#1A56DB] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-medium text-xs md:text-sm flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm">
           <Plus size={16} /> Add Enquiry
         </button>
       </div>
@@ -570,7 +630,7 @@ export default function SalesEnquiry() {
 
         {/* Floating Add Button for Mobile */}
         <button 
-          onClick={() => { setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: 'walk_in', remarks: '', status: 'new', time: '' }); setEditId(null); setIsViewOnly(false); setViewMode('create'); }}
+          onClick={() => setSearchParams({ mode: 'create' })}
           className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-[#2563EB] rounded-2xl shadow-lg shadow-blue-500/30 flex items-center justify-center text-white z-50 hover:bg-blue-700 active:scale-95 transition-all"
         >
           <Plus size={28} strokeWidth={2.5} />

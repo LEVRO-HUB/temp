@@ -19,6 +19,7 @@ export const createZone = async (req, res) => {
         zone_code: zone_code || null 
       }
     });
+    req.io.emit('zone_data_changed', { action: 'create', id: zone.id });
     res.status(201).json(zone);
   } catch (error) {
     console.error(error);
@@ -37,6 +38,7 @@ export const updateZone = async (req, res) => {
         zone_code: zone_code || null 
       }
     });
+    req.io.emit('zone_data_changed', { action: 'update', id: zone.id });
     res.json(zone);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update zone' });
@@ -70,6 +72,7 @@ export const createSite = async (req, res) => {
         unit_code: finalUnitCode
       }
     });
+    req.io.emit('site_data_changed', { action: 'create', id: site.id });
     res.status(201).json(site);
   } catch (error) {
     console.error(error);
@@ -98,6 +101,7 @@ export const updateSite = async (req, res) => {
       where: { id: parseInt(id) },
       data: updateData
     });
+    req.io.emit('site_data_changed', { action: 'update', id: site.id });
     res.json(site);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update site' });

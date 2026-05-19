@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Eye, Edit2, Calendar, ArrowLeft, Download, FileText, User, Phone, MapPin, Building2, BedDouble, Users, Info, X, Tags, CalendarClock, CalendarCheck, Clock, CreditCard, Search } from 'lucide-react';
 import Pagination from '../components/Pagination';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { exportToCSV } from '../utils/exportCSV';
 import API_BASE_URL from '../config';
 
 export default function SalesBooking() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [cameFromRooms, setCameFromRooms] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [sites, setSites] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -72,11 +74,12 @@ export default function SalesBooking() {
       }
       if (resRooms.ok) {
          setRooms(await resRooms.json());
-         if (location.state?.autoOpenCreate) {
-            setViewMode('create');
-            setForm(prev => ({...prev, site_id: location.state.prefilledSiteId, room_unit: location.state.prefilledRoomId, room_id: location.state.prefilledRoomId}));
-            window.history.replaceState({}, document.title);
-         }
+          if (location.state?.autoOpenCreate) {
+             setViewMode('create');
+             setForm(prev => ({...prev, site_id: location.state.prefilledSiteId, room_unit: location.state.prefilledRoomId, room_id: location.state.prefilledRoomId}));
+             setCameFromRooms(true);
+             window.history.replaceState({}, document.title);
+          }
       }
     } finally {
       setLoading(false);
@@ -171,7 +174,16 @@ export default function SalesBooking() {
       <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] p-4 md:p-8 md:-m-8 border-0 md:border-l border-[#E5E7EB]">
         
         <div className="flex items-center gap-3 mb-6">
-           <button onClick={() => setViewMode('list')} className="p-2 bg-white border border-[#E5E7EB] rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors shadow-sm">
+            <button 
+              onClick={() => {
+                if (cameFromRooms) {
+                  navigate('/rooms');
+                } else {
+                  setViewMode('list');
+                }
+              }} 
+              className="p-2 bg-white border border-[#E5E7EB] rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors shadow-sm"
+            >
              <ArrowLeft size={18} strokeWidth={2.5} />
            </button>
            <div>
@@ -265,7 +277,7 @@ export default function SalesBooking() {
                      <span className="text-[12px] font-bold">Headcount Config</span>
                   </div>
                   <div className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl text-[13px] font-medium text-gray-600">
-                     {form.no_of_rooms} Room(s) • {form.guest_count} Total
+                     {form.no_of_rooms} Room(s) â€¢ {form.guest_count} Total
                   </div>
                </div>
 
@@ -297,7 +309,7 @@ export default function SalesBooking() {
                      <span className="text-[12px] font-bold">Attributed Rate</span>
                   </div>
                   <div className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl text-[13px] font-semibold text-gray-700">
-                     ₹ {form.rate} / night
+                     â‚¹ {form.rate} / night
                   </div>
                </div>
 
@@ -308,7 +320,7 @@ export default function SalesBooking() {
                      <span className="text-[12px] font-bold">Total Ledger</span>
                   </div>
                   <div className="w-full px-4 py-3 bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl text-[14px] font-extrabold text-green-700">
-                     ₹ {parseFloat(form.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                     â‚¹ {parseFloat(form.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}
                   </div>
                </div>
 
@@ -376,7 +388,7 @@ export default function SalesBooking() {
                </div>
                <div>
                   <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><Building2 size={14} className="text-[#3B82F6]"/> Site <span className="text-red-500">*</span></label>
-                  <select required value={form.site_id} onChange={e=>setForm({...form, site_id: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
+                  <select required value={form.site_id} onChange={e=>setForm({...form, site_id: e.target.value, room_type: '', room_unit: '', room_id: ''})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
                     <option value="">Select Site</option>
                     {sites.map(s => <option key={s.id} value={s.id}>{s.site_name}</option>)}
                   </select>
@@ -391,25 +403,49 @@ export default function SalesBooking() {
                </div>
                <div>
                   <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><BedDouble size={14} className="text-[#3B82F6]"/> Room Type <span className="text-red-500">*</span></label>
-                  <select required value={form.room_type} onChange={e=>setForm({...form, room_type: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
+                  <select required value={form.room_type} onChange={e=>setForm({...form, room_type: e.target.value, room_unit: '', room_id: ''})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
                     <option value="">Select Room Type</option>
-                    <option value="Room">Room</option>
-                    <option value="OneBHK">OneBHK</option>
-                    <option value="TwoBHK">TwoBHK</option>
-                    <option value="ThreeBHK">ThreeBHK</option>
+                    {(() => {
+                      const selectedSite = sites.find(s => s.id === parseInt(form.site_id));
+                      if (!selectedSite) return null;
+                      
+                      if (selectedSite.site_type === 'service_apartment') {
+                        return (
+                          <>
+                            <option value="1BHK">1BHK</option>
+                            <option value="2BHK">2BHK</option>
+                            <option value="3BHK">3BHK</option>
+                            <option value="Home Stay">Home Stay</option>
+                            <option value="Room">Room</option>
+                            <option value="Villa">Villa</option>
+                          </>
+                        );
+                      } else {
+                        return (
+                          <>
+                            <option value="Deluxe">Deluxe</option>
+                            <option value="Home Stay">Home Stay</option>
+                            <option value="King Studio">King Studio</option>
+                            <option value="Room">Room</option>
+                            <option value="Standard">Standard</option>
+                            <option value="Superior King">Superior King</option>
+                          </>
+                        );
+                      }
+                    })()}
                   </select>
                </div>
                <div>
                   <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><BedDouble size={14} className="text-[#3B82F6]"/> Room / Unit <span className="text-red-500">*</span></label>
                   <select required value={form.room_unit} onChange={e=>setForm({...form, room_unit: e.target.value, room_id: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
                     <option value="">Select Room / Unit</option>
-                    {rooms.filter(r => r.site_id === parseInt(form.site_id)).map(r => (
+                    {rooms.filter(r => r.site_id === parseInt(form.site_id) && (!form.room_type || r.room_type === form.room_type)).map(r => (
                        <option key={r.id} value={r.id}>{r.room_number} - {r.room_type}</option>
                     ))}
                   </select>
                </div>
                <div>
-                  <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><CreditCard size={14} className="text-[#3B82F6]"/> Rate (₹) <span className="text-red-500">*</span></label>
+                  <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><CreditCard size={14} className="text-[#3B82F6]"/> Rate (â‚¹) <span className="text-red-500">*</span></label>
                   <input required type="number" value={form.rate} onChange={e=> { setForm({...form, rate: e.target.value, total_amount: e.target.value * form.no_of_rooms * (form.check_in_date && form.check_out_date ? calculateNights() : 1)})}} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500 transition-all font-medium" placeholder="0.00" />
                </div>
                <div>
@@ -417,7 +453,7 @@ export default function SalesBooking() {
                   <input required type="number" min="1" value={form.no_of_rooms} onChange={e=> { setForm({...form, no_of_rooms: e.target.value, total_amount: form.rate * e.target.value * (form.check_in_date && form.check_out_date ? calculateNights() : 1)})}} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500 transition-all font-medium" />
                </div>
                <div>
-                  <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><CreditCard size={14} className="text-[#3B82F6]"/> Total Amount (₹)</label>
+                  <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><CreditCard size={14} className="text-[#3B82F6]"/> Total Amount (â‚¹)</label>
                   <input required type="number" value={form.total_amount} onChange={e=>setForm({...form, total_amount: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-[#2563EB] font-bold outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500 transition-all" placeholder="0.00" />
                </div>
                <div className="md:col-span-3">
@@ -505,7 +541,7 @@ export default function SalesBooking() {
                   <th className="px-2 py-3.5 font-medium text-[12px] tracking-wider">Room No</th>
                   <th className="px-2 py-3.5 font-medium text-[12px] tracking-wider">Check-in</th>
                   <th className="px-2 py-3.5 font-medium text-[12px] tracking-wider">Check-out</th>
-                  <th className="px-2 py-3.5 font-medium text-[12px] tracking-wider text-right">Amount (₹)</th>
+                  <th className="px-2 py-3.5 font-medium text-[12px] tracking-wider text-right">Amount (â‚¹)</th>
                   <th className="px-2 py-3.5 font-medium text-[12px] tracking-wider">Payment Status</th>
                   <th className="px-2 py-3.5 font-medium text-[12px] tracking-wider">Created By</th>
                   <th className="px-2 py-3.5 font-medium text-[12px] tracking-wider">Type</th>
@@ -526,7 +562,7 @@ export default function SalesBooking() {
                     <td className="px-2 py-3.5 font-bold text-gray-900">{bkg.room?.room_number || '-'}</td>
                     <td className="px-2 py-3.5">{formatDate(bkg.check_in_date)}</td>
                     <td className="px-2 py-3.5">{formatDate(bkg.check_out_date)}</td>
-                    <td className="px-2 py-3.5 font-bold text-gray-900 text-right">₹ {parseFloat(bkg.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td className="px-2 py-3.5 font-bold text-gray-900 text-right">â‚¹ {parseFloat(bkg.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td className="px-2 py-3.5">{getPaymentPill(bkg.total_amount)}</td>
                     <td className="px-2 py-3.5 font-bold text-gray-800">{bkg.employee?.name || '--'}</td>
                     <td className="px-2 py-3.5 text-gray-600">{bkg.booking_type}</td>
@@ -579,7 +615,7 @@ export default function SalesBooking() {
                    </div>
                    <div className="mb-4">
                      <p className="text-[15px] font-extrabold text-[#0D1537] mb-1">{bkg.guest_name}</p>
-                     <p className="text-[12px] font-semibold text-gray-500 flex items-center gap-1.5"><Building2 size={12}/> Room {bkg.room?.room_number || '-'} • {bkg.booking_type}</p>
+                     <p className="text-[12px] font-semibold text-gray-500 flex items-center gap-1.5"><Building2 size={12}/> Room {bkg.room?.room_number || '-'} â€¢ {bkg.booking_type}</p>
                    </div>
                    <div className="flex items-center justify-between bg-[#F8FAFC] rounded-xl p-3 mb-3 border border-[#F1F5F9]">
                      <div className="text-center flex-1 border-r border-[#E5E7EB]">
@@ -593,7 +629,7 @@ export default function SalesBooking() {
                    </div>
                    <div className="flex justify-between items-center pt-1">
                      <p className="text-[11px] font-semibold text-gray-400 flex items-center gap-1"><User size={12}/> {bkg.employee?.name || 'System'}</p>
-                     <p className="text-[16px] font-black text-[#2563EB]">₹ {parseFloat(bkg.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 0})}</p>
+                     <p className="text-[16px] font-black text-[#2563EB]">â‚¹ {parseFloat(bkg.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 0})}</p>
                    </div>
                  </div>
                ))}

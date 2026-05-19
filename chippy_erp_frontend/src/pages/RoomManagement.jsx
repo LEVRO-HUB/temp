@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Download, FileText, Calendar, MapPin, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import API_BASE_URL from '../config';
 
 export default function RoomManagement() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [rooms, setRooms] = useState([]);
   const [sites, setSites] = useState([]);
   const [zones, setZones] = useState([]);
@@ -24,7 +25,7 @@ export default function RoomManagement() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [location.state]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -52,7 +53,22 @@ export default function RoomManagement() {
       if (resZones.ok) setZones(fetchedZones);
       if (resSites.ok) {
          setSites(fetchedSites);
-         // Removed auto-selection to show the top level views
+         if (location.state?.prefilledZoneId) {
+            setActiveZoneId(location.state.prefilledZoneId);
+         }
+         if (location.state?.prefilledSiteId) {
+            setActiveSiteId(location.state.prefilledSiteId);
+            if (location.state?.autoOpenCreate) {
+               const site = fetchedSites.find(s => s.id == location.state.prefilledSiteId);
+               const defaultRoomType = site?.site_type === 'service_apartment' ? '1BHK' : 'Standard';
+               setNewRoomData({
+                 room_number: '',
+                 room_type: defaultRoomType,
+                 status: 'available'
+               });
+               setIsModalOpen(true);
+            }
+         }
       }
     } catch(err) {
       console.error(err);
@@ -145,7 +161,16 @@ export default function RoomManagement() {
       {activeZoneId && !activeSiteId && (
         <div className="flex-1 flex flex-col gap-6 w-full max-w-6xl mx-auto">
           <div className="flex items-center gap-4">
-            <button onClick={() => setActiveZoneId('')} className="flex items-center justify-center p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
+            <button 
+              onClick={() => {
+                if (location.state?.prefilledZoneId) {
+                  navigate('/sites');
+                } else {
+                  setActiveZoneId('');
+                }
+              }} 
+              className="flex items-center justify-center p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+            >
               <ArrowLeft size={18} strokeWidth={2.5} />
             </button>
             <h1 className="text-[24px] font-extrabold text-gray-900 tracking-tight">{activeZone?.zone_name} - Sites</h1>
@@ -182,18 +207,27 @@ export default function RoomManagement() {
       {/* View 3: Rooms List */}
       {activeZoneId && activeSiteId && (
         <div className="flex-1 flex flex-col gap-6 w-full max-w-6xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button onClick={() => setActiveSiteId('')} className="flex items-center justify-center p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
+            <div className="flex items-start md:items-center gap-3 md:gap-4 w-full md:w-auto">
+              <button 
+                onClick={() => {
+                  if (location.state?.prefilledSiteId) {
+                    navigate('/sites');
+                  } else {
+                    setActiveSiteId('');
+                  }
+                }} 
+                className="flex shrink-0 items-center justify-center p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors mt-0.5 md:mt-0"
+              >
                 <ArrowLeft size={18} strokeWidth={2.5} />
               </button>
-              <h1 className="text-[24px] font-extrabold text-gray-900 tracking-tight">{activeSite?.site_name} - Rooms</h1>
+              <h1 className="text-[20px] md:text-[24px] font-extrabold text-gray-900 tracking-tight leading-tight">{activeSite?.site_name} - Rooms</h1>
             </div>
-            <div className="flex items-center gap-3">
-               <button className="flex items-center gap-2 border border-gray-200 rounded-lg px-4 py-2 bg-white text-[13px] font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
+            <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
+               <button className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white text-[13px] font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap">
                   <Download size={14} className="text-gray-500" /> Export CSV
                </button>
-               <button onClick={() => handleOpenModal(activeSiteId)} className="flex items-center gap-2 bg-[#2563EB] text-white rounded-lg px-4 py-2 text-[13px] font-bold hover:bg-blue-700 transition-colors shadow-sm">
+               <button onClick={() => handleOpenModal(activeSiteId)} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#2563EB] text-white rounded-lg px-3 py-2 text-[13px] font-bold hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap">
                   <Plus size={16} strokeWidth={2.5} /> Add Room
                </button>
             </div>
@@ -285,21 +319,16 @@ export default function RoomManagement() {
                   onChange={e => setNewRoomData({...newRoomData, room_type: e.target.value})}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[14px] font-medium outline-none focus:border-blue-500"
                 >
-                  {activeSite?.site_type === 'service_apartment' ? (
-                    <>
-                      <option value="1BHK">1BHK</option>
-                      <option value="2BHK">2BHK</option>
-                      <option value="3BHK">3BHK</option>
-                      <option value="Villa">Villa</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="Standard">Standard</option>
-                      <option value="Deluxe">Deluxe</option>
-                      <option value="Superior King">Superior King</option>
-                      <option value="King Studio">King Studio</option>
-                    </>
-                  )}
+                  <option value="1BHK">1BHK</option>
+                  <option value="2BHK">2BHK</option>
+                  <option value="3BHK">3BHK</option>
+                  <option value="Deluxe">Deluxe</option>
+                  <option value="Home Stay">Home Stay</option>
+                  <option value="King Studio">King Studio</option>
+                  <option value="Room">Room</option>
+                  <option value="Standard">Standard</option>
+                  <option value="Superior King">Superior King</option>
+                  <option value="Villa">Villa</option>
                 </select>
               </div>
               <div>

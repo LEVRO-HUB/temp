@@ -16,12 +16,6 @@ enum RoomStatus {
   maintenance
 }
 
-enum RoomType {
-  Room
-  OneBHK
-  TwoBHK
-  ThreeBHK
-}
 
 enum SiteType {
   hotel
@@ -235,7 +229,7 @@ model Room {
   id          Int        @id @default(autoincrement())
   site_id     Int
   room_number String     // CR-01, A-203
-  room_type   RoomType
+  room_type   String
   status      RoomStatus @default(available)
   is_active   Boolean    @default(true)
   created_at  DateTime   @default(now())
@@ -255,7 +249,7 @@ model Enquiry {
   mobile_number     String
   place             String?
   site_id           Int
-  room_type_requested RoomType
+  room_type_requested String
   check_in_date     DateTime
   check_out_date    DateTime?
   no_of_days        Int?
