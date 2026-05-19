@@ -42,6 +42,14 @@ enum BookingType {
   agent
 }
 
+// ✅ NEW — booking lifecycle status
+enum BookingStatus {
+  confirmed
+  checked_in
+  checked_out
+  cancelled
+}
+
 enum PaymentMethod {
   cash
   upi
@@ -78,21 +86,21 @@ enum POPriority {
 // --- MASTER TABLES ---
 
 model RoleMaster {
-  id         Int      @id @default(autoincrement())
-  name       String   @unique
-  icon       String?  // Lucide icon name
-  created_at DateTime @default(now())
-  
-  employees  Employee[]
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  icon        String?
+  created_at  DateTime @default(now())
+
+  employees   Employee[]
   permissions RolePermission[]
 }
 
 model DepartmentMaster {
   id         Int      @id @default(autoincrement())
   name       String   @unique
-  icon       String?  // Lucide icon name
+  icon       String?
   created_at DateTime @default(now())
-  
+
   employees  Employee[]
 }
 
@@ -105,7 +113,7 @@ model ModuleMaster {
   sort_order   Int      @default(0)
   status       Boolean  @default(true)
   created_at   DateTime @default(now())
-  
+
   permissions  RolePermission[]
 }
 
@@ -118,8 +126,8 @@ model RolePermission {
   can_edit   Boolean @default(false)
   can_delete Boolean @default(false)
 
-  role       RoleMaster @relation(fields: [role_id], references: [id], onDelete: Cascade)
-  module     ModuleMaster @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  role   RoleMaster   @relation(fields: [role_id],   references: [id], onDelete: Cascade)
+  module ModuleMaster @relation(fields: [module_id], references: [id], onDelete: Cascade)
 
   @@unique([role_id, module_id])
 }
@@ -132,23 +140,23 @@ model BankMaster {
   branch     String?
   is_active  Boolean  @default(true)
   created_at DateTime @default(now())
-  
+
   payments   Payment[] @relation("BankPayment")
   ccPayments Payment[] @relation("CCBankPayment")
 }
 
 model VendorMaster {
-  id          Int      @id @default(autoincrement())
-  vendor_name String
+  id           Int      @id @default(autoincrement())
+  vendor_name  String
   contact_name String?
-  mobile      String?
-  email       String?
-  address     String?
-  gstin       String?
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
-  
-  payments    Payment[]
+  mobile       String?
+  email        String?
+  address      String?
+  gstin        String?
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+
+  payments Payment[]
 }
 
 model CurrencyMaster {
@@ -157,8 +165,8 @@ model CurrencyMaster {
   currency_name String
   symbol        String?
   is_active     Boolean  @default(true)
-  
-  payments      Payment[]
+
+  payments Payment[]
 }
 
 // --- CORE ENTITIES ---
@@ -173,17 +181,17 @@ model Employee {
   login_enabled Boolean  @default(false)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
-  
-  role_id       Int?
-  dept_id       Int?
-  created_by    Int?     // refers to Employee.id
 
-  role_master   RoleMaster?   @relation(fields: [role_id], references: [id])
-  dept_master   DepartmentMaster? @relation(fields: [dept_id], references: [id])
+  role_id    Int?
+  dept_id    Int?
+  created_by Int?
 
-  enquiries      Enquiry[]
-  bookings       Booking[]
-  purchaseOrders PurchaseOrder[]
+  role_master DepartmentMaster? @relation(fields: [dept_id],  references: [id])
+  dept_master RoleMaster?       @relation(fields: [role_id],  references: [id])
+
+  enquiries       Enquiry[]
+  bookings        Booking[]
+  purchaseOrders  PurchaseOrder[]
   paymentsCreated Payment[] @relation("PaymentsCreatedBy")
   paymentsUpdated Payment[] @relation("PaymentsUpdatedBy")
 
@@ -197,29 +205,29 @@ model Zone {
   zone_name  String   @unique
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  created_by Int?     // Employee.id
+  created_by Int?
 
   sites Site[]
 }
 
 model Site {
-  id            Int      @id @default(autoincrement())
-  site_name     String
-  location      String
-  zone_id       Int
-  site_type     SiteType
-  total_rooms   Int
-  unit_code     String   // CR-01, Block-A etc
-  is_active     Boolean  @default(true)
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
-  created_by    Int?     // Employee.id
+  id          Int      @id @default(autoincrement())
+  site_name   String
+  location    String
+  zone_id     Int
+  site_type   SiteType
+  total_rooms Int
+  unit_code   String
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  created_by  Int?
 
-  zone Zone @relation(fields: [zone_id], references: [id])
-  rooms Room[]
-  enquiries Enquiry[]
-  bookings Booking[]
-  payments Payment[]
+  zone           Zone            @relation(fields: [zone_id], references: [id])
+  rooms          Room[]
+  enquiries      Enquiry[]
+  bookings       Booking[]
+  payments       Payment[]
   purchaseOrders PurchaseOrder[]
 
   @@index([zone_id])
@@ -235,7 +243,7 @@ model Room {
   created_at  DateTime   @default(now())
   updated_at  DateTime   @updatedAt
 
-  site Site @relation(fields: [site_id], references: [id])
+  site     Site      @relation(fields: [site_id], references: [id])
   bookings Booking[]
 
   @@unique([site_id, room_number])
@@ -262,7 +270,7 @@ model Enquiry {
   updated_at        DateTime      @updatedAt
 
   employee Employee @relation(fields: [created_by], references: [id])
-  site     Site     @relation(fields: [site_id], references: [id])
+  site     Site     @relation(fields: [site_id],    references: [id])
   bookings Booking[]
 
   @@index([site_id, status])
@@ -271,33 +279,39 @@ model Enquiry {
 }
 
 model Booking {
-  id             Int         @id @default(autoincrement())
-  enquiry_id     Int?
-  site_id        Int
-  room_id        Int
-  booking_type   BookingType
-  guest_name     String
-  guest_count    Int
-  mobile_number  String
-  place          String?
-  check_in_date  DateTime
-  check_out_date DateTime
-  total_nights   Int
-  booking_date   DateTime    @default(now())
-  total_amount   Decimal     @db.Decimal(12, 2)
-  is_deleted     Boolean     @default(false)
-  created_by     Int
-  created_at     DateTime    @default(now())
-  updated_at     DateTime    @updatedAt
+  id              Int           @id @default(autoincrement())
+  enquiry_id      Int?
+  site_id         Int
+  room_id         Int
+  booking_type    BookingType
+  status          BookingStatus @default(confirmed)  // ✅ NEW
+  guest_name      String
+  guest_count     Int
+  mobile_number   String
+  place           String?
+  check_in_date   DateTime
+  check_out_date  DateTime
+  total_nights    Int
+  booking_date    DateTime      @default(now())
+  rate_per_night  Decimal?      @db.Decimal(10, 2)  // ✅ NEW — snapshot of rate at time of booking
+  total_amount    Decimal       @db.Decimal(12, 2)
+  actual_check_in  DateTime?   // ✅ NEW — when they actually arrived
+  actual_check_out DateTime?   // ✅ NEW — when they actually left
+  remarks         String?
+  is_deleted      Boolean       @default(false)
+  created_by      Int
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
 
-  employee Employee @relation(fields: [created_by], references: [id])
-  enquiry  Enquiry? @relation(fields: [enquiry_id], references: [id])
-  site     Site     @relation(fields: [site_id], references: [id])
-  room     Room     @relation(fields: [room_id], references: [id])
+  employee Employee  @relation(fields: [created_by], references: [id])
+  enquiry  Enquiry?  @relation(fields: [enquiry_id], references: [id])
+  site     Site      @relation(fields: [site_id],    references: [id])
+  room     Room      @relation(fields: [room_id],    references: [id])
   payments Payment[]
 
   @@index([site_id])
   @@index([room_id])
+  @@index([status])
   @@index([mobile_number])
   @@index([check_in_date, check_out_date])
 }
@@ -322,26 +336,26 @@ model Payment {
   payment_amt_in_base  Decimal         @db.Decimal(12, 2)
   is_active            Boolean         @default(true)
   is_deleted           Boolean         @default(false)
-  
-  site_id              Int
-  booking_id           Int
-  vendor_id            Int?
-  bank_id              Int?
-  cc_bank_id           Int?
-  currency_id          Int?
-  created_by_id        Int
-  updated_by_id        Int?
-  inserted_at          DateTime        @default(now())
-  updated_at           DateTime        @updatedAt
 
-  site        Site            @relation(fields: [site_id], references: [id])
-  booking     Booking         @relation(fields: [booking_id], references: [id])
-  vendor      VendorMaster?   @relation(fields: [vendor_id], references: [id])
-  bank        BankMaster?     @relation("BankPayment", fields: [bank_id], references: [id])
-  cc_bank     BankMaster?     @relation("CCBankPayment", fields: [cc_bank_id], references: [id])
-  currency    CurrencyMaster? @relation(fields: [currency_id], references: [id])
-  createdBy   Employee        @relation("PaymentsCreatedBy", fields: [created_by_id], references: [id])
-  updatedBy   Employee?       @relation("PaymentsUpdatedBy", fields: [updated_by_id], references: [id])
+  site_id       Int
+  booking_id    Int
+  vendor_id     Int?
+  bank_id       Int?
+  cc_bank_id    Int?
+  currency_id   Int?
+  created_by_id Int
+  updated_by_id Int?
+  inserted_at   DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  site      Site            @relation(fields: [site_id],      references: [id])
+  booking   Booking         @relation(fields: [booking_id],   references: [id])
+  vendor    VendorMaster?   @relation(fields: [vendor_id],    references: [id])
+  bank      BankMaster?     @relation("BankPayment",   fields: [bank_id],    references: [id])
+  cc_bank   BankMaster?     @relation("CCBankPayment", fields: [cc_bank_id], references: [id])
+  currency  CurrencyMaster? @relation(fields: [currency_id], references: [id])
+  createdBy Employee        @relation("PaymentsCreatedBy", fields: [created_by_id], references: [id])
+  updatedBy Employee?       @relation("PaymentsUpdatedBy", fields: [updated_by_id], references: [id])
 
   @@index([site_id])
   @@index([booking_id])
@@ -350,29 +364,29 @@ model Payment {
 }
 
 model PurchaseOrder {
-  id                Int               @id @default(autoincrement())
-  po_number         String            @unique
+  id                Int        @id @default(autoincrement())
+  po_number         String     @unique
   vendor_name       String
-  date              DateTime          @default(now())
+  date              DateTime   @default(now())
   site_id           Int
   department        String?
-  priority          POPriority        @default(normal)
+  priority          POPriority @default(normal)
   payment_terms     String?
   expected_delivery DateTime?
   delivery_location String?
   contact_person    String?
   remarks           String?
-  subtotal          Decimal           @default(0) @db.Decimal(12, 2)
-  tax_amount        Decimal           @default(0) @db.Decimal(12, 2)
-  total_amount      Decimal           @default(0) @db.Decimal(12, 2)
-  status            POStatus          @default(pending)
-  is_deleted        Boolean           @default(false)
+  subtotal          Decimal    @default(0) @db.Decimal(12, 2)
+  tax_amount        Decimal    @default(0) @db.Decimal(12, 2)
+  total_amount      Decimal    @default(0) @db.Decimal(12, 2)
+  status            POStatus   @default(pending)
+  is_deleted        Boolean    @default(false)
   created_by        Int
-  created_at        DateTime          @default(now())
-  updated_at        DateTime          @updatedAt
+  created_at        DateTime   @default(now())
+  updated_at        DateTime   @updatedAt
 
   employee Employee           @relation(fields: [created_by], references: [id])
-  site     Site               @relation(fields: [site_id], references: [id])
+  site     Site               @relation(fields: [site_id],    references: [id])
   items    PurchaseOrderItem[]
 
   @@index([site_id, status])
@@ -380,13 +394,13 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderItem {
-  id                Int           @id @default(autoincrement())
+  id                Int     @id @default(autoincrement())
   purchase_order_id Int
   description       String
   unit              String?
   quantity          Int
-  unit_price        Decimal       @db.Decimal(12, 2)
-  total_price       Decimal       @db.Decimal(12, 2)
+  unit_price        Decimal @db.Decimal(12, 2)
+  total_price       Decimal @db.Decimal(12, 2)
 
   purchase_order PurchaseOrder @relation(fields: [purchase_order_id], references: [id], onDelete: Cascade)
 

@@ -73,6 +73,7 @@ export default function DashboardLayout() {
       items: [
         { name: 'Sales Enquiries', path: '/enquiries', icon: Users, key: 'enquiries' },
         { name: 'Bookings & Sales', path: '/bookings', icon: Box, key: 'bookings' },
+        { name: 'Booking Calendar', path: '/booking-calendar', icon: CalendarDays, key: 'bookings' },
       ]
     },
     {
