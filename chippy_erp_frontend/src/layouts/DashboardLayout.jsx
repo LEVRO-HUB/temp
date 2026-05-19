@@ -243,6 +243,7 @@ export default function DashboardLayout() {
                   <div className="px-4 py-2 border-b border-[#E5E7EB] mb-1">
                     <p className="text-[11px] text-gray-500 font-medium">Logged in as</p>
                     <p className="text-xs font-bold text-gray-900 truncate">{user.name}</p>
+                    <p className="text-[10px] text-blue-600 font-semibold uppercase mt-0.5">{user.role}</p>
                   </div>
                   <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 font-semibold hover:bg-red-50 flex items-center gap-2 transition-colors">
                     <LogOut size={14} /> Sign Out
