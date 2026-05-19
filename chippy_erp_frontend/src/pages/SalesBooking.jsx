@@ -127,7 +127,29 @@ export default function SalesBooking() {
       }
       if (resRooms.ok) {
         setRooms(await resRooms.json());
-        if (location.state?.autoOpenCreate) {
+        if (location.state?.prefilledEnquiry) {
+          const eq = location.state.prefilledEnquiry;
+          setViewMode('create');
+          setForm(prev => ({
+            ...prev,
+            booking_type: 'walk_in',
+            guest_name: eq.guest_name || '',
+            guest_count: 1,
+            mobile_number: eq.mobile_number || '',
+            place: eq.place || '',
+            site_id: eq.site_id?.toString() || '',
+            check_in_date: eq.check_in_date ? new Date(eq.check_in_date).toISOString().split('T')[0] : '',
+            check_out_date: eq.check_out_date ? new Date(eq.check_out_date).toISOString().split('T')[0] : '',
+            room_id: '',
+            room_type: eq.room_type_requested || '',
+            rate_per_night: '',
+            total_amount: '',
+            no_of_rooms: 1,
+            enquiry_id: eq.id?.toString() || '',
+            remarks: eq.remarks || ''
+          }));
+          window.history.replaceState({}, document.title);
+        } else if (location.state?.autoOpenCreate) {
           setViewMode('create');
           setForm(prev => ({
             ...prev,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Download, FileText, Calendar, MapPin, ArrowLeft } from 'lucide-react';
+import { Plus, Download, FileText, Calendar, MapPin, ArrowLeft, Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import API_BASE_URL from '../config';
 
@@ -14,11 +14,14 @@ export default function RoomManagement() {
 
   const [activeSiteId, setActiveSiteId] = useState('');
   const [activeZoneId, setActiveZoneId] = useState('');
+  const [filterStatus, setFilterStatus] = useState('All Status');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newRoomData, setNewRoomData] = useState({
+    site_id: '',
     room_number: '',
-    room_type: 'standard',
+    room_type: 'Standard',
     status: 'available'
   });
   const [submitError, setSubmitError] = useState('');
@@ -62,6 +65,7 @@ export default function RoomManagement() {
                const site = fetchedSites.find(s => s.id == location.state.prefilledSiteId);
                const defaultRoomType = site?.site_type === 'service_apartment' ? '1BHK' : 'Standard';
                setNewRoomData({
+                 site_id: location.state.prefilledSiteId,
                  room_number: '',
                  room_type: defaultRoomType,
                  status: 'available'
@@ -77,25 +81,27 @@ export default function RoomManagement() {
     }
   };
 
-  const activeSite = sites.find(s => s.id == activeSiteId);
-  const activeZone = zones.find(z => z.id == activeZoneId);
-  const activeRooms = rooms.filter(r => r.site_id == activeSiteId);
-
-  const handleOpenModal = (siteId) => {
-    setActiveSiteId(siteId);
-    const site = sites.find(s => s.id === siteId);
+  const handleOpenModal = () => {
+    const defaultSiteId = activeSiteId && activeSiteId !== 'All Sites' ? activeSiteId : (sites[0]?.id || '');
+    const site = sites.find(s => s.id == defaultSiteId);
     const defaultRoomType = site?.site_type === 'service_apartment' ? '1BHK' : 'Standard';
     setNewRoomData({
+      site_id: defaultSiteId,
       room_number: '',
       room_type: defaultRoomType,
       status: 'available'
     });
+    setSubmitError('');
     setIsModalOpen(true);
   };
 
   const handleCreateRoom = async (e) => {
     e.preventDefault();
     setSubmitError('');
+    if (!newRoomData.site_id) {
+      setSubmitError('Please select a site');
+      return;
+    }
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE_URL}/api/rooms`, {
@@ -105,7 +111,7 @@ export default function RoomManagement() {
           'Authorization': 'Bearer ' + token
         },
         body: JSON.stringify({
-          site_id: activeSiteId,
+          site_id: parseInt(newRoomData.site_id),
           room_number: newRoomData.room_number,
           room_type: newRoomData.room_type,
           status: newRoomData.status
@@ -127,173 +133,235 @@ export default function RoomManagement() {
   const today = new Date();
   today.setHours(0,0,0,0);
 
+  // Compute filtered rooms list
+  const filteredRooms = rooms.filter(room => {
+    // 1. Zone filter
+    if (activeZoneId) {
+      if (room.site?.zone_id != activeZoneId) return false;
+    }
+    // 2. Site filter
+    if (activeSiteId) {
+      if (room.site_id != activeSiteId) return false;
+    }
+
+    // Determine room booking status for overlap check
+    const overlappingBooking = bookings.find(b => {
+      if (b.room_id !== room.id) return false;
+      const cIn = new Date(b.check_in_date); cIn.setHours(0,0,0,0);
+      const cOut = new Date(b.check_out_date); cOut.setHours(0,0,0,0);
+      return today >= cIn && today < cOut;
+    });
+
+    const isMaintenance = room.status === 'maintenance';
+    const computedStatus = overlappingBooking ? 'occupied' : (isMaintenance ? 'maintenance' : 'available');
+
+    // 3. Status filter
+    if (filterStatus && filterStatus !== 'All Status') {
+      if (computedStatus !== filterStatus.toLowerCase()) return false;
+    }
+
+    // 4. Search term
+    if (searchTerm) {
+      const lower = searchTerm.toLowerCase();
+      const numMatch = room.room_number.toLowerCase().includes(lower);
+      const typeMatch = room.room_type.toLowerCase().includes(lower);
+      const guestMatch = overlappingBooking?.guest_name?.toLowerCase().includes(lower);
+      const siteMatch = room.site?.site_name?.toLowerCase().includes(lower);
+      if (!numMatch && !typeMatch && !guestMatch && !siteMatch) return false;
+    }
+
+    return true;
+  });
+
+  // Group rooms by site
+  const roomsBySite = {};
+  filteredRooms.forEach(room => {
+    const siteId = room.site_id;
+    if (!roomsBySite[siteId]) {
+      roomsBySite[siteId] = {
+        siteName: room.site?.site_name || 'Unassigned Site',
+        rooms: []
+      };
+    }
+    roomsBySite[siteId].rooms.push(room);
+  });
+
+  // Sort rooms naturally by room number in each site group
+  Object.values(roomsBySite).forEach(group => {
+    group.rooms.sort((a, b) => a.room_number.localeCompare(b.room_number, undefined, { numeric: true, sensitivity: 'base' }));
+  });
+
+  // Sort site groups by site name
+  const sortedSiteGroups = Object.values(roomsBySite).sort((a, b) => a.siteName.localeCompare(b.siteName));
+
   return (
-    <div className="w-full bg-white min-h-screen p-8 flex flex-col gap-8">
+    <div className="space-y-6 max-w-[1600px] mx-auto p-4 md:p-0">
       
-      {/* View 1: Zones List */}
-      {!activeZoneId && (
-        <div className="flex-1 flex flex-col gap-6 w-full max-w-6xl mx-auto">
-          <div className="flex items-center justify-between">
-            <h1 className="text-[24px] font-extrabold text-gray-900 tracking-tight">Zones Management</h1>
+      {/* Page Header */}
+      <div className="flex justify-between items-center pb-4 border-b border-[#E5E7EB]">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight">Rooms Management</h1>
+        <button onClick={handleOpenModal} className="bg-[#1A56DB] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-medium text-xs md:text-sm flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm">
+          <Plus size={16} /> Add Room
+        </button>
+      </div>
+
+      {/* Filters Section */}
+      <div className="bg-white border border-[#E5E7EB] rounded-[12px] shadow-sm flex flex-col">
+        <div className="p-4 border-b border-[#E5E7EB] bg-gray-50/50 rounded-t-[12px] space-y-4">
+          <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-3">
+            {/* Search Input */}
+            <div className="relative w-full md:w-56 shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input 
+                type="text" 
+                placeholder="Search room number, type..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg text-sm text-gray-700 outline-none focus:border-[#2563EB]"
+              />
+            </div>
+
+            {/* Zone Filter */}
+            <select 
+              value={activeZoneId || 'All Zones'} 
+              onChange={e => {
+                const val = e.target.value;
+                setActiveZoneId(val === 'All Zones' ? '' : val);
+                setActiveSiteId(''); // Reset site selection when zone changes
+              }} 
+              className="w-full md:w-44 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none"
+            >
+              <option value="All Zones">All Zones</option>
+              {zones.map(z => <option key={z.id} value={z.id}>{z.zone_name}</option>)}
+            </select>
+
+            {/* Site Filter */}
+            <select 
+              value={activeSiteId || 'All Sites'} 
+              onChange={e => {
+                const val = e.target.value;
+                setActiveSiteId(val === 'All Sites' ? '' : val);
+              }} 
+              className="w-full md:w-48 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none"
+            >
+              <option value="All Sites">All Sites</option>
+              {sites
+                .filter(s => !activeZoneId || s.zone_id == activeZoneId)
+                .map(s => <option key={s.id} value={s.id}>{s.site_name}</option>)
+              }
+            </select>
+
+            {/* Status Filter */}
+            <select 
+              value={filterStatus} 
+              onChange={e => setFilterStatus(e.target.value)} 
+              className="w-full md:w-36 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none"
+            >
+              <option value="All Status">All Status</option>
+              <option value="Available">Available</option>
+              <option value="Occupied">Occupied</option>
+              <option value="Maintenance">Maintenance</option>
+            </select>
+
+            {/* Reset Button */}
+            <button 
+              onClick={() => {
+                setActiveZoneId('');
+                setActiveSiteId('');
+                setFilterStatus('All Status');
+                setSearchTerm('');
+              }} 
+              className="w-full md:w-auto px-4 py-2 text-[#2563EB] border border-[#BFDBFE] bg-white hover:bg-blue-50 rounded-lg text-[13px] font-bold transition-colors shadow-sm whitespace-nowrap"
+            >
+              Reset
+            </button>
           </div>
+        </div>
+
+        {/* Room Grid View */}
+        <div className="p-6 bg-gray-50/30 rounded-b-[12px] space-y-8">
           {loading ? (
-             <div className="py-20 text-center font-bold text-gray-400">Loading data...</div>
+            <div className="py-20 text-center font-bold text-gray-400">Loading rooms snapshot...</div>
+          ) : sortedSiteGroups.length === 0 ? (
+            <div className="py-20 text-center text-gray-500 font-medium">No matching rooms found.</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {zones.map(zone => {
-                const zoneSites = sites.filter(s => s.zone_id === zone.id);
-                return (
-                  <div key={zone.id} onClick={() => setActiveZoneId(zone.id)} className="bg-white border border-gray-200 rounded-[16px] p-6 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col gap-4">
-                    <h3 className="font-extrabold text-[20px] text-gray-900">{zone.zone_name}</h3>
-                    <div className="flex items-center justify-between mt-2">
-                       <span className="text-gray-500 font-bold text-[14px]">{zoneSites.length} Sites Available</span>
-                       <span className="text-blue-600 text-[13px] font-bold">View Sites →</span>
+            sortedSiteGroups.map(siteGroup => (
+              <div key={siteGroup.siteName} className="border-b border-gray-100 last:border-0 pb-6 last:pb-0">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-1 h-5 bg-[#2563EB] rounded-full"></div>
+                  <h2 className="text-md font-bold text-gray-800">{siteGroup.siteName}</h2>
+                  <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                    {siteGroup.rooms.length} {siteGroup.rooms.length === 1 ? 'Room' : 'Rooms'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                  {siteGroup.rooms.map(room => {
+                    const isMaintenance = room.status === 'maintenance';
+                    const overlappingBooking = bookings.find(b => {
+                      if (b.room_id !== room.id) return false;
+                      const cIn = new Date(b.check_in_date); cIn.setHours(0,0,0,0);
+                      const cOut = new Date(b.check_out_date); cOut.setHours(0,0,0,0);
+                      return today >= cIn && today < cOut; 
+                    });
+
+                    let bgClass = "bg-emerald-50/50 border-emerald-100 hover:bg-emerald-100/50";
+                    let titleClass = "text-emerald-800";
+                    let statusClass = "bg-emerald-100 text-emerald-800";
+                    let statusText = "Available";
+
+                    if (overlappingBooking) {
+                      bgClass = "bg-rose-50/50 border-rose-100 hover:bg-rose-100/50";
+                      titleClass = "text-rose-800";
+                      statusClass = "bg-rose-100 text-rose-800";
+                      statusText = "Occupied";
+                    } else if (isMaintenance) {
+                      bgClass = "bg-amber-50/50 border-amber-100 hover:bg-amber-100/50";
+                      titleClass = "text-amber-800";
+                      statusClass = "bg-amber-100 text-amber-800";
+                      statusText = "Maintenance";
+                    }
+
+                    return (
+                  <div 
+                    key={room.id} 
+                    onClick={() => {
+                      if (!overlappingBooking && !isMaintenance) {
+                        navigate('/bookings', { state: { autoOpenCreate: true, prefilledSiteId: room.site_id, prefilledRoomId: room.id } });
+                      }
+                    }} 
+                    className={`relative border rounded-xl p-4 flex flex-col justify-between h-[130px] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 shadow-sm ${bgClass}`}
+                  >
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <h4 className={`font-extrabold text-[15px] tracking-tight ${titleClass}`}>
+                          {room.room_number.toUpperCase()}
+                        </h4>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusClass}`}>
+                          {statusText}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 font-semibold mt-1 capitalize">{room.room_type.replace('_',' ')}</p>
                     </div>
+
+                    {overlappingBooking ? (
+                      <div className="mt-3 pt-2 border-t border-gray-100 flex items-center gap-1.5 text-rose-700">
+                        <FileText size={10} className="shrink-0" />
+                        <span className="text-[9px] font-bold truncate">
+                          {overlappingBooking.guest_name}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="h-[14px]"></div>
+                    )}
                   </div>
                 );
               })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* View 2: Sites List */}
-      {activeZoneId && !activeSiteId && (
-        <div className="flex-1 flex flex-col gap-6 w-full max-w-6xl mx-auto">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => {
-                if (location.state?.prefilledZoneId) {
-                  navigate('/sites');
-                } else {
-                  setActiveZoneId('');
-                }
-              }} 
-              className="flex items-center justify-center p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              <ArrowLeft size={18} strokeWidth={2.5} />
-            </button>
-            <h1 className="text-[24px] font-extrabold text-gray-900 tracking-tight">{activeZone?.zone_name} - Sites</h1>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {sites.filter(s => s.zone_id === activeZoneId).map(site => {
-              const siteRooms = rooms.filter(r => r.site_id === site.id);
-              return (
-                <div key={site.id} className="bg-white border border-gray-200 rounded-[16px] p-6 shadow-sm flex flex-col gap-5">
-                  <h3 className="font-bold text-[18px] text-gray-900">{site.site_name}</h3>
-                  <div className="grid grid-cols-[100px_1fr] gap-y-3 text-[13.5px]">
-                    <span className="text-gray-500 font-medium">Type</span> 
-                    <span className="font-semibold text-gray-800 capitalize">{site.site_type.replace('_',' ')}</span>
-                    <span className="text-gray-500 font-medium">Location</span> 
-                    <span className="font-semibold text-gray-800">{site.location.split(',')[0]}</span>
-                    <span className="text-gray-500 font-medium">Total Rooms</span> 
-                    <span className="font-semibold text-gray-800">{siteRooms.length}</span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-2">
-                    <button onClick={() => setActiveSiteId(site.id)} className="flex-1 border border-[#2563EB] text-[#2563EB] rounded-lg px-4 py-2 text-[13px] font-bold hover:bg-blue-50 transition-colors text-center">
-                      View Rooms
-                    </button>
-                    <button onClick={() => handleOpenModal(site.id)} className="flex-1 bg-[#2563EB] text-white rounded-lg px-4 py-2 text-[13px] font-bold hover:bg-blue-700 transition-colors text-center flex justify-center items-center gap-2 shadow-sm">
-                      <Plus size={16} strokeWidth={2.5} /> Add Room
-                    </button>
-                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* View 3: Rooms List */}
-      {activeZoneId && activeSiteId && (
-        <div className="flex-1 flex flex-col gap-6 w-full max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
-            <div className="flex items-start md:items-center gap-3 md:gap-4 w-full md:w-auto">
-              <button 
-                onClick={() => {
-                  if (location.state?.prefilledSiteId) {
-                    navigate('/sites');
-                  } else {
-                    setActiveSiteId('');
-                  }
-                }} 
-                className="flex shrink-0 items-center justify-center p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors mt-0.5 md:mt-0"
-              >
-                <ArrowLeft size={18} strokeWidth={2.5} />
-              </button>
-              <h1 className="text-[20px] md:text-[24px] font-extrabold text-gray-900 tracking-tight leading-tight">{activeSite?.site_name} - Rooms</h1>
-            </div>
-            <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
-               <button className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white text-[13px] font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap">
-                  <Download size={14} className="text-gray-500" /> Export CSV
-               </button>
-               <button onClick={() => handleOpenModal(activeSiteId)} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#2563EB] text-white rounded-lg px-3 py-2 text-[13px] font-bold hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap">
-                  <Plus size={16} strokeWidth={2.5} /> Add Room
-               </button>
-            </div>
-          </div>
-
-          {/* Room Tiles Grid */}
-          {loading ? (
-             <div className="py-20 text-center font-bold text-gray-400">Loading rooms snapshot...</div>
-          ) : (
-             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 auto-rows-max">
-                {activeRooms.map(room => {
-                   const isMaintenance = room.status === 'maintenance';
-                   const overlappingBooking = bookings.find(b => {
-                       if(b.room_id !== room.id) return false;
-                       const cIn = new Date(b.check_in_date); cIn.setHours(0,0,0,0);
-                       const cOut = new Date(b.check_out_date); cOut.setHours(0,0,0,0);
-                       return today >= cIn && today < cOut; 
-                   });
-
-                   let bgClass = "bg-[#F0FDF4] border-[#dcfce7]";
-                   let titleClass = "text-[#166534]";
-                   let statusClass = "text-[#16A34A]";
-                   let statusText = "AVAILABLE";
-
-                   if (overlappingBooking) {
-                      bgClass = "bg-[#FEF2F2] border-[#fee2e2]";
-                      titleClass = "text-[#991B1B]";
-                      statusClass = "text-[#DC2626]";
-                      statusText = "OCCUPIED";
-                   } else if (isMaintenance) {
-                      bgClass = "bg-[#FFF7ED] border-[#ffedd5]";
-                      titleClass = "text-[#9A3412]";
-                      statusClass = "text-[#EA580C]";
-                      statusText = "MAINTENANCE";
-                   }
-
-                   return (
-                      <div key={room.id} onClick={() => {
-                         if(!overlappingBooking && !isMaintenance) {
-                            navigate('/bookings', { state: { autoOpenCreate: true, prefilledSiteId: room.site_id, prefilledRoomId: room.id } });
-                         }
-                      }} className={`relative border rounded-[12px] h-[110px] flex flex-col items-center justify-center cursor-pointer transition-colors hover:brightness-95 ${bgClass}`}>
-                         
-                         <h4 className={`font-extrabold text-[16px] tracking-tight ${titleClass}`}>
-                            {room.room_number.toUpperCase()}
-                         </h4>
-                         
-                         <span className={`text-[11px] font-extrabold uppercase mt-1 tracking-wide ${statusClass}`}>
-                            {statusText}
-                         </span>
-
-                         {overlappingBooking && (
-                            <div className="flex items-center gap-1.5 mt-2">
-                               <FileText size={10} className="text-[#EF4444] opacity-80" />
-                               <span className="text-[10px] font-bold text-[#EF4444]">
-                                  #BKG-{10000+overlappingBooking.id}
-                               </span>
-                            </div>
-                         )}
-                      </div>
-                   )
-                })}
-             </div>
+              </div>
+            ))
           )}
         </div>
-      )}
+      </div>
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -301,6 +369,22 @@ export default function RoomManagement() {
             <h2 className="text-[20px] font-extrabold mb-4 text-gray-900">Add New Room</h2>
             {submitError && <div className="mb-4 text-[#EF4444] text-[13px] font-bold">{submitError}</div>}
             <form onSubmit={handleCreateRoom} className="flex flex-col gap-4">
+              <div>
+                <label className="block text-[13px] font-bold mb-1 text-gray-800">Site</label>
+                <select 
+                  required
+                  value={newRoomData.site_id}
+                  onChange={e => {
+                    const site = sites.find(s => s.id == e.target.value);
+                    const defaultRoomType = site?.site_type === 'service_apartment' ? '1BHK' : 'Standard';
+                    setNewRoomData({...newRoomData, site_id: e.target.value, room_type: defaultRoomType});
+                  }}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[14px] font-medium outline-none focus:border-blue-500"
+                >
+                  <option value="">Select a Site</option>
+                  {sites.map(s => <option key={s.id} value={s.id}>{s.site_name}</option>)}
+                </select>
+              </div>
               <div>
                 <label className="block text-[13px] font-bold mb-1 text-gray-800">Room Number</label>
                 <input 
