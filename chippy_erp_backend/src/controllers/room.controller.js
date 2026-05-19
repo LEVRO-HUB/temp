@@ -26,14 +26,13 @@ export const getRooms = async (req, res) => {
 
 export const createRoom = async (req, res) => {
   try {
-    const { site_id, room_number, room_type, status, rate_per_night } = req.body;
+    const { site_id, room_number, room_type, status } = req.body;
     const room = await prisma.room.create({
       data: {
         site_id:        parseInt(site_id),
         room_number,
         room_type,
         status:         status || 'available',
-        rate_per_night: rate_per_night ? parseFloat(rate_per_night) : null,
       },
     });
     res.status(201).json(room);
@@ -47,14 +46,13 @@ export const createRoom = async (req, res) => {
 export const updateRoom = async (req, res) => {
   try {
     const { id } = req.params;
-    const { room_number, room_type, status, rate_per_night, is_active } = req.body;
+    const { room_number, room_type, status, is_active } = req.body;
 
     const data = {};
     if (room_number    !== undefined) data.room_number    = room_number;
     if (room_type      !== undefined) data.room_type      = room_type;
     if (status         !== undefined) data.status         = status;
     if (is_active      !== undefined) data.is_active      = is_active;
-    if (rate_per_night !== undefined) data.rate_per_night = rate_per_night !== null ? parseFloat(rate_per_night) : null;
 
     const room = await prisma.room.update({
       where: { id: parseInt(id) },
