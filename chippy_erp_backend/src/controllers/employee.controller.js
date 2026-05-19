@@ -13,7 +13,8 @@ export const getAllEmployees = async (req, res) => {
 
     const mapped = employees.map(emp => ({
       ...emp,
-      role: (emp.role_master?.name || 'Employee').toLowerCase()
+      role: emp.role_master || { name: 'Employee', icon: 'User' },
+      department: emp.dept_master
     }));
 
     res.json(mapped);
@@ -37,7 +38,8 @@ export const getEmployeeById = async (req, res) => {
 
     const mapped = {
       ...employee,
-      role: (employee.role_master?.name || 'Employee').toLowerCase()
+      role: employee.role_master || { name: 'Employee', icon: 'User' },
+      department: employee.dept_master
     };
 
     res.json(mapped);

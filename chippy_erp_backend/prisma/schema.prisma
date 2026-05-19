@@ -186,8 +186,8 @@ model Employee {
   dept_id    Int?
   created_by Int?
 
-  role_master DepartmentMaster? @relation(fields: [dept_id],  references: [id])
-  dept_master RoleMaster?       @relation(fields: [role_id],  references: [id])
+  role_master RoleMaster?       @relation(fields: [role_id],  references: [id])
+  dept_master DepartmentMaster? @relation(fields: [dept_id],  references: [id])
 
   enquiries       Enquiry[]
   bookings        Booking[]
