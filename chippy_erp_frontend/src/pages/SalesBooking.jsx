@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Plus, Eye, Edit2, Calendar, ArrowLeft, Download, FileText,
+  Plus, Eye, Edit2, Calendar, ArrowLeft, Download, FileText, LayoutGrid,
   User, Phone, MapPin, Building2, BedDouble, Users, Info, X,
   Tags, CalendarClock, CalendarCheck, Clock, CreditCard, Search,
   CheckCircle, LogIn, LogOut, XCircle, AlertTriangle, Moon
 } from 'lucide-react';
 import Pagination from '../components/Pagination';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { exportToCSV } from '../utils/exportCSV';
 import API_BASE_URL from '../config';
 
@@ -56,6 +56,7 @@ const ConfirmDialog = ({ open, title, message, onConfirm, onCancel, confirmLabel
 // ─────────────────────────────────────────────────────────────────────────────
 export default function SalesBooking() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [bookings,   setBookings]   = useState([]);
   const [sites,      setSites]      = useState([]);
@@ -128,7 +129,12 @@ export default function SalesBooking() {
         setRooms(await resRooms.json());
         if (location.state?.autoOpenCreate) {
           setViewMode('create');
-          setForm(prev => ({ ...prev, site_id: location.state.prefilledSiteId, room_id: location.state.prefilledRoomId }));
+          setForm(prev => ({
+            ...prev,
+            site_id: location.state.prefilledSiteId || '',
+            room_id: location.state.prefilledRoomId || '',
+            check_in_date: location.state.prefilledCheckIn || '',
+          }));
           window.history.replaceState({}, document.title);
         }
       }
@@ -528,6 +534,9 @@ export default function SalesBooking() {
         <div className="flex items-center gap-3">
           <button onClick={() => exportToCSV(filteredBookings, 'bookings')} className="hidden md:flex bg-white border border-[#E5E7EB] text-gray-700 px-4 py-2 rounded-lg font-bold text-sm items-center gap-2 hover:bg-gray-50 shadow-sm">
             <Download size={16}/> Export
+          </button>
+          <button onClick={() => navigate('/booking-calendar')} className="hidden md:flex bg-white border border-[#E5E7EB] text-gray-700 px-4 py-2 rounded-lg font-bold text-sm items-center gap-2 hover:bg-gray-50 shadow-sm">
+            <LayoutGrid size={16}/> Calendar View
           </button>
           <button onClick={() => { resetForm(); setViewMode('create'); }} className="bg-[#1A56DB] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-medium text-xs md:text-sm flex items-center gap-1.5 hover:bg-blue-700 shadow-sm">
             <Plus size={14}/> Add Booking

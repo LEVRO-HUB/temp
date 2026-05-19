@@ -409,3 +409,64 @@ export const deleteBooking = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete booking' });
   }
 };
+// ─────────────────────────────────────────────
+// GANTT DATA  (Phase 2A)
+// GET /api/bookings/gantt?site_id=X&from=YYYY-MM-DD&to=YYYY-MM-DD
+// Returns rooms with their bookings for the requested window
+// ─────────────────────────────────────────────
+export const getGanttData = async (req, res) => {
+  try {
+    const { site_id, from, to } = req.query;
+
+    if (!site_id || !from || !to) {
+      return res.status(400).json({ error: 'site_id, from and to are required' });
+    }
+
+    const fromDate = new Date(from);
+    const toDate   = new Date(to);
+
+    if (toDate <= fromDate) {
+      return res.status(400).json({ error: 'to must be after from' });
+    }
+
+    // All active rooms for this site
+    const rooms = await prisma.room.findMany({
+      where:   { site_id: parseInt(site_id), is_active: true },
+      orderBy: { room_number: 'asc' },
+      select:  { id: true, room_number: true, room_type: true, status: true, rate_per_night: true },
+    });
+
+    // All non-deleted bookings that overlap the window
+    const bookings = await prisma.booking.findMany({
+      where: {
+        site_id:        parseInt(site_id),
+        is_deleted:     false,
+        status:         { not: 'cancelled' },
+        check_in_date:  { lt: toDate },
+        check_out_date: { gt: fromDate },
+      },
+      select: {
+        id: true, room_id: true, guest_name: true, mobile_number: true,
+        check_in_date: true, check_out_date: true, total_nights: true,
+        total_amount: true, status: true, booking_type: true, rate_per_night: true,
+      },
+    });
+
+    // Group bookings by room_id
+    const byRoom = {};
+    for (const b of bookings) {
+      if (!byRoom[b.room_id]) byRoom[b.room_id] = [];
+      byRoom[b.room_id].push(b);
+    }
+
+    const result = rooms.map(r => ({
+      ...r,
+      bookings: byRoom[r.id] || [],
+    }));
+
+    res.json({ rooms: result, from: fromDate, to: toDate });
+  } catch (error) {
+    console.error('getGanttData error:', error);
+    res.status(500).json({ error: 'Failed to fetch Gantt data' });
+  }
+};
