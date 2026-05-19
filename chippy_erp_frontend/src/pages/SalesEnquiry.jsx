@@ -14,6 +14,7 @@ export default function SalesEnquiry() {
   const [viewMode, setViewMode] = useState('list');
   const [editId, setEditId] = useState(null);
   const [isViewOnly, setIsViewOnly] = useState(false);
+  const [submitAction, setSubmitAction] = useState('save');
 
   const [form, setForm] = useState({
     guest_name: '',
@@ -66,6 +67,19 @@ export default function SalesEnquiry() {
       setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: 'walk_in', remarks: '', status: 'new', time: '' });
     }
   }, [searchParams, enquiries]);
+
+  useEffect(() => {
+    if (form.check_in_date && form.check_out_date) {
+      const start = new Date(form.check_in_date);
+      const end = new Date(form.check_out_date);
+      const diffTime = end - start;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setForm(prev => ({
+        ...prev,
+        no_of_days: diffDays >= 0 ? diffDays.toString() : ''
+      }));
+    }
+  }, [form.check_in_date, form.check_out_date]);
 
   const [employees, setEmployees] = useState([]);
   const [filterSite, setFilterSite] = useState('All Sites');
@@ -129,14 +143,37 @@ export default function SalesEnquiry() {
     const method = editId ? 'PUT' : 'POST';
     const url = editId ? `${API_BASE_URL}/api/enquiries/${editId}` : `${API_BASE_URL}/api/enquiries`;
 
-    await fetch(url, {
+    const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({ ...form, no_of_days: parseInt(form.no_of_days) || 0 })
     });
 
-    resetForm();
-    fetchData();
+    if (res.ok) {
+      if (submitAction === 'new' && !editId) {
+        setForm({
+          guest_name: '',
+          mobile_number: '',
+          place: '',
+          site_id: '',
+          room_type_requested: 'Room',
+          check_in_date: '',
+          check_out_date: '',
+          no_of_days: '',
+          enquiry_source: 'walk_in',
+          remarks: '',
+          status: 'new',
+          time: ''
+        });
+        fetchData();
+      } else {
+        resetForm();
+        fetchData();
+      }
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.message || 'Failed to save enquiry');
+    }
   };
 
   const handleEdit = (enq, viewOnly = false) => {
@@ -465,8 +502,8 @@ export default function SalesEnquiry() {
               <button type="button" onClick={resetForm} className="px-5 py-2.5 text-sm font-bold text-gray-700 bg-white border border-[#E5E7EB] rounded-lg hover:bg-gray-50 transition-colors shadow-sm">Cancel</button>
               {!isViewOnly && (
                 <>
-                  <button type="submit" className="px-5 py-2.5 text-sm font-bold text-[#2563EB] bg-white border border-[#BFDBFE] rounded-lg hover:bg-blue-50 transition-colors shadow-sm">{editId ? 'Apply Update' : 'Save Enquiry'}</button>
-                  {!editId && <button type="submit" className="px-5 py-2.5 text-sm font-bold text-white bg-[#2563EB] rounded-lg hover:bg-blue-700 transition-colors shadow-sm">Save & New</button>}
+                  <button type="submit" onClick={() => setSubmitAction('save')} className="px-5 py-2.5 text-sm font-bold text-[#2563EB] bg-white border border-[#BFDBFE] rounded-lg hover:bg-blue-50 transition-colors shadow-sm">{editId ? 'Apply Update' : 'Save Enquiry'}</button>
+                  {!editId && <button type="submit" onClick={() => setSubmitAction('new')} className="px-5 py-2.5 text-sm font-bold text-white bg-[#2563EB] rounded-lg hover:bg-blue-700 transition-colors shadow-sm">Save & New</button>}
                 </>
               )}
             </div>
