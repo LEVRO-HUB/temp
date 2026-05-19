@@ -16,12 +16,6 @@ enum RoomStatus {
   maintenance
 }
 
-enum RoomType {
-  Room
-  OneBHK
-  TwoBHK
-  ThreeBHK
-}
 
 enum SiteType {
   hotel
@@ -240,15 +234,14 @@ model Site {
 }
 
 model Room {
-  id              Int        @id @default(autoincrement())
-  site_id         Int
-  room_number     String
-  room_type       RoomType
-  status          RoomStatus @default(available)
-  rate_per_night  Decimal?   @db.Decimal(10, 2)  // ✅ NEW — auto-calculate booking total
-  is_active       Boolean    @default(true)
-  created_at      DateTime   @default(now())
-  updated_at      DateTime   @updatedAt
+  id          Int        @id @default(autoincrement())
+  site_id     Int
+  room_number String     // CR-01, A-203
+  room_type   String
+  status      RoomStatus @default(available)
+  is_active   Boolean    @default(true)
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
 
   site     Site      @relation(fields: [site_id], references: [id])
   bookings Booking[]
@@ -258,23 +251,23 @@ model Room {
 }
 
 model Enquiry {
-  id                  Int           @id @default(autoincrement())
-  enquiry_time        DateTime      @default(now())
-  guest_name          String
-  mobile_number       String
-  place               String?
-  site_id             Int
-  room_type_requested RoomType
-  check_in_date       DateTime
-  check_out_date      DateTime?
-  no_of_days          Int?
-  enquiry_source      EnquirySource
-  status              EnquiryStatus @default(new)
-  remarks             String?
-  is_deleted          Boolean       @default(false)
-  created_by          Int
-  created_at          DateTime      @default(now())
-  updated_at          DateTime      @updatedAt
+  id                Int           @id @default(autoincrement())
+  enquiry_time      DateTime      @default(now())
+  guest_name        String
+  mobile_number     String
+  place             String?
+  site_id           Int
+  room_type_requested String
+  check_in_date     DateTime
+  check_out_date    DateTime?
+  no_of_days        Int?
+  enquiry_source    EnquirySource
+  status            EnquiryStatus @default(new)
+  remarks           String?
+  is_deleted        Boolean       @default(false)
+  created_by        Int
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
 
   employee Employee @relation(fields: [created_by], references: [id])
   site     Site     @relation(fields: [site_id],    references: [id])

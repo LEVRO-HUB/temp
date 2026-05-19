@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, Camera, User, Lock, Mail, Bell, Shield, LogOut, ChevronRight, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import API_BASE_URL from '../config';
 
 export default function ProfileSettings() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -136,7 +137,13 @@ export default function ProfileSettings() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            if (location.key !== 'default') {
+              navigate(-1);
+            } else {
+              navigate('/dashboard');
+            }
+          }}
           className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600"
         >
           <ChevronLeft size={24} />

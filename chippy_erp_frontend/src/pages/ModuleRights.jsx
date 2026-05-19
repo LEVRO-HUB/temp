@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ShieldCheck, ArrowLeft, Loader2, Save, CheckCircle2, XCircle } from 'lucide-react';
 import API_BASE_URL from '../config';
 
 export default function ModuleRights() {
   const { roleId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [modules, setModules] = useState([]);
   const [permissions, setPermissions] = useState({}); // { moduleId: { can_view, can_add, ... } }
   const [loading, setLoading] = useState(true);
@@ -90,7 +91,11 @@ export default function ModuleRights() {
       if (!response.ok) throw new Error('Failed to save permissions');
       
       alert('Permissions saved successfully!');
-      navigate(-1);
+      if (location.key !== 'default') {
+        navigate(-1);
+      } else {
+        navigate('/rbac');
+      }
     } catch (error) {
       console.error('Error saving permissions', error);
       alert('Failed to save permissions: ' + error.message);
@@ -113,7 +118,16 @@ export default function ModuleRights() {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <button 
+            onClick={() => {
+              if (location.key !== 'default') {
+                navigate(-1);
+              } else {
+                navigate('/rbac');
+              }
+            }} 
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
             <ArrowLeft size={24} className="text-gray-600" />
           </button>
           <div>

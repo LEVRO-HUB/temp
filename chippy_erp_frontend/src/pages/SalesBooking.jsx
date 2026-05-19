@@ -57,7 +57,7 @@ const ConfirmDialog = ({ open, title, message, onConfirm, onCancel, confirmLabel
 export default function SalesBooking() {
   const location = useLocation();
   const navigate = useNavigate();
-
+  const [cameFromRooms, setCameFromRooms] = useState(false);
   const [bookings,   setBookings]   = useState([]);
   const [sites,      setSites]      = useState([]);
   const [employees,  setEmployees]  = useState([]);
@@ -78,7 +78,7 @@ export default function SalesBooking() {
     booking_type: 'walk_in', guest_name: '', guest_count: 1,
     mobile_number: '', place: '', site_id: '',
     check_in_date: '', check_out_date: '',
-    room_id: '', rate_per_night: '', total_amount: '',
+    room_id: '', room_type: '', rate_per_night: '', total_amount: '',
     no_of_rooms: 1, remarks: '', enquiry_id: '',
   });
 
@@ -132,9 +132,11 @@ export default function SalesBooking() {
           setForm(prev => ({
             ...prev,
             site_id: location.state.prefilledSiteId || '',
+            room_unit: location.state.prefilledRoomId || '',
             room_id: location.state.prefilledRoomId || '',
             check_in_date: location.state.prefilledCheckIn || '',
           }));
+          setCameFromRooms(true);
           window.history.replaceState({}, document.title);
         }
       }
@@ -279,6 +281,7 @@ export default function SalesBooking() {
       check_in_date:  bkg.check_in_date  ? new Date(bkg.check_in_date).toISOString().split('T')[0]  : '',
       check_out_date: bkg.check_out_date ? new Date(bkg.check_out_date).toISOString().split('T')[0] : '',
       room_id:        bkg.room_id || '',
+      room_type:      bkg.room?.room_type || '',
       rate_per_night: bkg.rate_per_night || '',
       total_amount:   bkg.total_amount || '',
       no_of_rooms:    1,
@@ -291,7 +294,7 @@ export default function SalesBooking() {
   };
 
   const resetForm = () => {
-    setForm({ booking_type: 'walk_in', guest_name: '', guest_count: 1, mobile_number: '', place: '', site_id: '', check_in_date: '', check_out_date: '', room_id: '', rate_per_night: '', total_amount: '', no_of_rooms: 1, remarks: '', enquiry_id: '' });
+    setForm({ booking_type: 'walk_in', guest_name: '', guest_count: 1, mobile_number: '', place: '', site_id: '', check_in_date: '', check_out_date: '', room_id: '', room_type: '', rate_per_night: '', total_amount: '', no_of_rooms: 1, remarks: '', enquiry_id: '' });
     setEditId(null);
     setIsViewOnly(false);
     setAvailRooms([]);
@@ -336,9 +339,7 @@ export default function SalesBooking() {
     );
   };
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // CREATE / EDIT FORM VIEW
-  // ────────────────────────────────────────────────────────────────────────────
+  // ── Create mode view ───────────────────────────────────────────────────────
   if (viewMode === 'create') {
     const nights = calcNights();
     const selectedRoom = rooms.find(r => r.id === parseInt(form.room_id));
@@ -346,167 +347,365 @@ export default function SalesBooking() {
     return (
       <div className="bg-[#F8FAFC] min-h-[calc(100vh-4rem)] p-4 md:p-8 md:-m-8 border-0 md:border-l border-[#E5E7EB]">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => { setViewMode('list'); resetForm(); }} className="p-2 bg-white border border-[#E5E7EB] rounded-lg text-gray-500 hover:bg-gray-50 shadow-sm transition-colors">
+          <button 
+            onClick={() => {
+              if (cameFromRooms) {
+                navigate('/rooms');
+              } else {
+                setViewMode('list');
+                resetForm();
+              }
+            }} 
+            className="p-2 bg-white border border-[#E5E7EB] rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors shadow-sm"
+          >
             <ArrowLeft size={18} strokeWidth={2.5} />
           </button>
           <div>
             <h1 className="text-xl font-bold text-gray-900 leading-tight">
-              {isViewOnly ? 'Booking Manifest' : (editId ? 'Edit Booking' : 'New Booking')}
+              {isViewOnly ? 'Booking Manifest Ticket' : (editId ? 'Edit Booking' : 'Add New Booking')}
             </h1>
-            <p className="text-sm font-medium text-gray-500">
-              {isViewOnly ? `BKG-${10000 + editId}` : 'Fill in guest and room details below'}
-            </p>
+            <p className="text-sm font-medium text-gray-500">{isViewOnly ? 'Passenger and Room assignment manifest details' : 'Secure booking and assign units'}</p>
           </div>
-          {isViewOnly && editId && (
-            <div className="ml-auto">
-              <StatusPill status={bookings.find(b => b.id === editId)?.status || 'confirmed'} />
-            </div>
-          )}
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-[#E5E7EB] p-6 max-w-[1600px]">
-          <fieldset disabled={isViewOnly} className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-5">
+        {isViewOnly ? (
+          <div className="bg-white rounded-[20px] shadow-[0_2px_15px_rgb(0,0,0,0.03)] border border-[#E5E7EB] p-8 max-w-[1200px] relative overflow-hidden">
+            <div className="flex items-center gap-3 mb-8 text-[#2563EB]">
+               <div className="p-2 bg-blue-50 rounded-full">
+                  <FileText size={18} strokeWidth={2.5}/>
+               </div>
+               <h2 className="text-[15px] font-extrabold text-gray-900 tracking-wide">Booking Manifest <span className="text-gray-400 font-medium ml-1">#BKG-{10000 + editId}</span></h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-8">
+               {/* Guest Name */}
+               <div>
+                  <div className="flex items-center gap-2 mb-2.5 text-[#4B5563]">
+                     <User size={15} strokeWidth={2.5} className="text-[#3B82F6]" />
+                     <span className="text-[12px] font-bold">Primary Guest</span>
+                  </div>
+                  <div className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl text-[13px] font-semibold text-gray-900">
+                     {form.guest_name || '--'}
+                  </div>
+               </div>
 
-            {/* Row 1: Booking type, Source Enquiry, Guest Name, Mobile */}
-            <div>
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><Tags size={13} className="text-[#3B82F6]"/> Booking Type *</label>
-              <select required value={form.booking_type} onChange={e => setForm({...form, booking_type: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-700 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500">
-                <option value="walk_in">Walk-In</option>
-                <option value="online">Online</option>
-                <option value="agent">Agent</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><FileText size={13} className="text-[#3B82F6]"/> Source Enquiry</label>
-              <select value={form.enquiry_id} onChange={e => setForm({...form, enquiry_id: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-700 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500">
-                <option value="">No Linking (Direct)</option>
-                {enquiries.filter(eq => eq.status !== 'converted').map(eq => (
-                  <option key={eq.id} value={eq.id}>{eq.guest_name} — {eq.mobile_number}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><User size={13} className="text-[#3B82F6]"/> Guest Name *</label>
-              <input required value={form.guest_name} onChange={e => setForm({...form, guest_name: e.target.value})} placeholder="Full name" className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
-            </div>
-            <div>
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><Phone size={13} className="text-[#3B82F6]"/> Mobile *</label>
-              <input required type="tel" value={form.mobile_number} onChange={e => setForm({...form, mobile_number: e.target.value})} placeholder="Mobile number" className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
+               {/* Mobile Number */}
+               <div>
+                  <div className="flex items-center gap-2 mb-2.5 text-[#4B5563]">
+                     <Phone size={15} strokeWidth={2.5} className="text-[#3B82F6]" />
+                     <span className="text-[12px] font-bold">Contact Number</span>
+                  </div>
+                  <div className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl text-[13px] font-semibold text-gray-900">
+                     {form.mobile_number || '--'}
+                  </div>
+               </div>
+
+               {/* Booking Type */}
+               <div>
+                  <div className="flex items-center gap-2 mb-2.5 text-[#4B5563]">
+                     <Tags size={15} strokeWidth={2.5} className="text-[#3B82F6]" />
+                     <span className="text-[12px] font-bold">Booking Type</span>
+                  </div>
+                  <div className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl text-[13px] font-medium text-gray-900">
+                     {form.booking_type || '--'}
+                  </div>
+               </div>
+
+               {/* Place */}
+               <div>
+                  <div className="flex items-center gap-2 mb-2.5 text-[#4B5563]">
+                     <MapPin size={15} strokeWidth={2.5} className="text-[#3B82F6]" />
+                     <span className="text-[12px] font-bold">City / Residence</span>
+                  </div>
+                  <div className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl text-[13px] font-medium text-gray-900">
+                     {form.place || '--'}
+                  </div>
+               </div>
+
+               {/* Site */}
+               <div>
+                  <div className="flex items-center gap-2 mb-2.5 text-[#4B5563]">
+                     <Building2 size={15} strokeWidth={2.5} className="text-[#3B82F6]" />
+                     <span className="text-[12px] font-bold">Site Placement</span>
+                  </div>
+                  <div className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl text-[13px] font-semibold text-gray-900">
+                     {sites.find(s=>s.id == form.site_id)?.site_name || 'N/A'}
+                  </div>
+               </div>
+
+               {/* Room Specs */}
+               <div>
+                  <div className="flex items-center gap-2 mb-2.5 text-[#4B5563]">
+                     <BedDouble size={15} strokeWidth={2.5} className="text-[#3B82F6]" />
+                     <span className="text-[12px] font-bold">Room Allocation</span>
+                  </div>
+                  <div className="w-full px-4 py-3 bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl text-[13px] font-bold text-blue-700">
+                     {rooms.find(r=>r.id == form.room_unit)?.room_number || rooms.find(r=>r.id == form.room_id)?.room_number || 'TBD'} - {form.room_type}
+                  </div>
+               </div>
+
+               {/* Occupancy */}
+               <div>
+                  <div className="flex items-center gap-2 mb-2.5 text-[#4B5563]">
+                     <Users size={15} strokeWidth={2.5} className="text-[#3B82F6]" />
+                     <span className="text-[12px] font-bold">Headcount Config</span>
+                  </div>
+                  <div className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl text-[13px] font-medium text-gray-600">
+                     {form.no_of_rooms} Room(s) • {form.guest_count} Total
+                  </div>
+               </div>
+
+               {/* Stay Duration / Check-ins */}
+               <div>
+                  <div className="flex items-center gap-2 mb-2.5 text-[#4B5563]">
+                     <CalendarClock size={15} strokeWidth={2.5} className="text-[#3B82F6]" />
+                     <span className="text-[12px] font-bold">Arrival Date</span>
+                  </div>
+                  <div className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl text-[13px] font-semibold text-gray-900">
+                     {form.check_in_date ? form.check_in_date.split('-').reverse().join('-') : '--'}
+                  </div>
+               </div>
+
+               <div>
+                  <div className="flex items-center gap-2 mb-2.5 text-[#4B5563]">
+                     <CalendarCheck size={15} strokeWidth={2.5} className="text-[#3B82F6]" />
+                     <span className="text-[12px] font-bold">Departure Date</span>
+                  </div>
+                  <div className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl text-[13px] font-semibold text-gray-900">
+                     {form.check_out_date ? form.check_out_date.split('-').reverse().join('-') : '--'}
+                  </div>
+               </div>
+
+               {/* Rate */}
+               <div>
+                  <div className="flex items-center gap-2 mb-2.5 text-[#4B5563]">
+                     <CreditCard size={15} strokeWidth={2.5} className="text-[#3B82F6]" />
+                     <span className="text-[12px] font-bold">Attributed Rate</span>
+                  </div>
+                  <div className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl text-[13px] font-semibold text-gray-700">
+                     ₹ {form.rate_per_night || form.rate || '—'} / night
+                  </div>
+               </div>
+
+               {/* Total Amount */}
+               <div>
+                  <div className="flex items-center gap-2 mb-2.5 text-[#4B5563]">
+                     <CreditCard size={15} strokeWidth={2.5} className="text-[#3B82F6]" />
+                     <span className="text-[12px] font-bold">Total Ledger</span>
+                  </div>
+                  <div className="w-full px-4 py-3 bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl text-[14px] font-extrabold text-green-700">
+                     ₹ {parseFloat(form.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                  </div>
+               </div>
+
+               {/* Remarks */}
+               {form.remarks && (
+                 <div className="md:col-span-4">
+                    <div className="flex items-center gap-2 mb-2.5 text-[#4B5563]">
+                       <FileText size={15} strokeWidth={2.5} className="text-[#3B82F6]" />
+                       <span className="text-[12px] font-bold">Booking Remarks / Notes</span>
+                    </div>
+                    <div className="w-full px-4 py-4 bg-[#F9FAFB] border border-dashed border-gray-300 rounded-xl text-[13px] font-medium text-gray-600">
+                       {form.remarks}
+                    </div>
+                 </div>
+               )}
             </div>
 
-            {/* Row 2: Guests, Place, Site, Check-in */}
-            <div>
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><Users size={13} className="text-[#3B82F6]"/> No. of Guests *</label>
-              <input required type="number" min="1" value={form.guest_count} onChange={e => setForm({...form, guest_count: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
+            <div className="mt-12 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+               <div className="flex-1 bg-[#F5F3FF] rounded-xl p-4 flex items-center gap-3 border border-purple-100">
+                 <div className="text-[#6D28D9] shrink-0">
+                    <Info size={18} strokeWidth={2.5} />
+                 </div>
+                 <p className="text-[13px] font-semibold text-[#5B21B6]">Booking details frozen. Changes lock 24 hours prior to check-in.</p>
+               </div>
+               <button onClick={() => { setViewMode('list'); resetForm(); }} className="px-6 py-4 text-[13px] font-bold text-white bg-[#4F46E5] rounded-xl hover:bg-[#4338CA] transition-all shadow-[0_4px_14px_rgba(79,70,229,0.25)] flex items-center justify-center gap-2 shrink-0">
+                  <X size={16} strokeWidth={2.5}/> Close Manifest
+               </button>
             </div>
-            <div>
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><MapPin size={13} className="text-[#3B82F6]"/> Place / City</label>
-              <input value={form.place} onChange={e => setForm({...form, place: e.target.value})} placeholder="City" className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
-            </div>
-            <div>
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><Building2 size={13} className="text-[#3B82F6]"/> Property / Site *</label>
-              <select required value={form.site_id} onChange={e => setForm({...form, site_id: e.target.value, room_id: '', rate_per_night: '', total_amount: ''})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-700 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500">
-                <option value="">Select Site</option>
-                {sites.map(s => <option key={s.id} value={s.id}>{s.site_name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><CalendarClock size={13} className="text-[#3B82F6]"/> Check-in Date *</label>
-              <input required type="date" value={form.check_in_date} onChange={e => handleDateChange('check_in_date', e.target.value)} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
-            </div>
-
-            {/* Row 3: Check-out, Room (availability-aware), Rate, Total */}
-            <div>
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><CalendarCheck size={13} className="text-[#3B82F6]"/> Check-out Date *</label>
-              <input required type="date" value={form.check_out_date} min={form.check_in_date} onChange={e => handleDateChange('check_out_date', e.target.value)} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
-            </div>
-            <div>
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5">
-                <BedDouble size={13} className="text-[#3B82F6]"/> Room / Unit *
-                {loadingAvail && <span className="ml-1 text-[10px] font-normal text-gray-400 animate-pulse">checking availability…</span>}
-                {!loadingAvail && form.site_id && form.check_in_date && form.check_out_date && (
-                  <span className="ml-1 text-[10px] font-bold text-green-600">{availRooms.length} available</span>
-                )}
-              </label>
-              <select
-                required
-                value={form.room_id}
-                onChange={e => handleRoomSelect(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-700 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500"
-              >
-                <option value="">
-                  {!form.site_id || !form.check_in_date || !form.check_out_date
-                    ? 'Select site & dates first'
-                    : loadingAvail ? 'Checking availability…'
-                    : availRooms.length === 0 ? 'No rooms available'
-                    : 'Select available room'}
-                </option>
-                {(isViewOnly ? rooms.filter(r => r.id === parseInt(form.room_id)) : availRooms)
-                  .map(r => (
-                    <option key={r.id} value={r.id}>
-                      {r.room_number} — {r.room_type}{r.rate_per_night ? ` (₹${parseFloat(r.rate_per_night).toLocaleString('en-IN')}/night)` : ''}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><CreditCard size={13} className="text-[#3B82F6]"/> Rate / Night (₹)</label>
-              <input
-                type="number"
-                value={form.rate_per_night}
-                onChange={e => {
-                  const rate = parseFloat(e.target.value) || '';
-                  setForm(prev => ({ ...prev, rate_per_night: rate, total_amount: rate && nights ? rate * nights : '' }));
-                }}
-                placeholder="Auto from room"
-                className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500"
-              />
-            </div>
-            <div>
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><CreditCard size={13} className="text-[#3B82F6]"/> Total Amount (₹)</label>
-              <div className="relative">
-                <input
-                  required type="number"
-                  value={form.total_amount}
-                  onChange={e => setForm({...form, total_amount: e.target.value})}
-                  className="w-full px-3 py-2 bg-white border border-[#2563EB] rounded-lg text-sm font-bold text-[#2563EB] outline-none focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500"
-                  placeholder="0.00"
-                />
-                {nights > 0 && form.rate_per_night && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">
-                    {nights}N × ₹{parseFloat(form.rate_per_night).toLocaleString('en-IN')}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Remarks — full width */}
-            <div className="md:col-span-4">
-              <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><FileText size={13} className="text-[#3B82F6]"/> Remarks / Notes</label>
-              <input value={form.remarks} onChange={e => setForm({...form, remarks: e.target.value})} placeholder="Add a note…" className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
-            </div>
-          </fieldset>
-
-          {/* Summary strip */}
-          {(nights > 0 || form.total_amount) && (
-            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100 flex flex-wrap items-center gap-6 text-[13px] font-semibold text-blue-700">
-              {nights > 0 && <span className="flex items-center gap-1.5"><Moon size={14}/> {nights} Night{nights > 1 ? 's' : ''}</span>}
-              {selectedRoom && <span className="flex items-center gap-1.5"><BedDouble size={14}/> Room {selectedRoom.room_number}</span>}
-              {form.total_amount && <span className="ml-auto text-[16px] font-black text-[#1D4ED8]">₹ {parseFloat(form.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-[#E5E7EB]">
-            <button type="button" onClick={() => { setViewMode('list'); resetForm(); }} className="px-5 py-2.5 text-sm font-bold text-gray-700 bg-white border border-[#E5E7EB] rounded-lg hover:bg-gray-50 shadow-sm">
-              {isViewOnly ? 'Close' : 'Cancel'}
-            </button>
-            {!isViewOnly && (
-              <button type="submit" className="px-5 py-2.5 text-sm font-bold text-white bg-[#2563EB] rounded-lg hover:bg-blue-700 shadow-sm">
-                {editId ? 'Save Changes' : 'Confirm Booking'}
-              </button>
-            )}
           </div>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-[#E5E7EB] p-6 max-w-[1600px]">
+            <fieldset disabled={isViewOnly} className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-5">
+              
+              {/* Row 1: Booking type, Source Enquiry, Guest Name, Mobile */}
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><Tags size={13} className="text-[#3B82F6]"/> Booking Type *</label>
+                <select required value={form.booking_type} onChange={e => setForm({...form, booking_type: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-700 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500">
+                  <option value="walk_in">Walk-In</option>
+                  <option value="online">Online</option>
+                  <option value="agent">Agent</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><FileText size={13} className="text-[#3B82F6]"/> Source Enquiry</label>
+                <select value={form.enquiry_id} onChange={e => setForm({...form, enquiry_id: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-700 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500">
+                  <option value="">No Linking (Direct)</option>
+                  {enquiries.filter(eq => eq.status !== 'converted').map(eq => (
+                    <option key={eq.id} value={eq.id}>{eq.guest_name} — {eq.mobile_number}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><User size={13} className="text-[#3B82F6]"/> Guest Name *</label>
+                <input required value={form.guest_name} onChange={e => setForm({...form, guest_name: e.target.value})} placeholder="Full name" className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><Phone size={13} className="text-[#3B82F6]"/> Mobile *</label>
+                <input required type="tel" value={form.mobile_number} onChange={e => setForm({...form, mobile_number: e.target.value})} placeholder="Mobile number" className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
+              </div>
+
+              {/* Row 2: Guests, Place, Site, Check-in */}
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><Users size={13} className="text-[#3B82F6]"/> No. of Guests *</label>
+                <input required type="number" min="1" value={form.guest_count} onChange={e => setForm({...form, guest_count: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><MapPin size={13} className="text-[#3B82F6]"/> Place / City</label>
+                <input value={form.place} onChange={e => setForm({...form, place: e.target.value})} placeholder="City" className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><Building2 size={13} className="text-[#3B82F6]"/> Property / Site *</label>
+                <select required value={form.site_id} onChange={e => setForm({...form, site_id: e.target.value, room_type: '', room_id: '', rate_per_night: '', total_amount: ''})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-700 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500">
+                  <option value="">Select Site</option>
+                  {sites.map(s => <option key={s.id} value={s.id}>{s.site_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><CalendarClock size={13} className="text-[#3B82F6]"/> Check-in Date *</label>
+                <input required type="date" value={form.check_in_date} onChange={e => handleDateChange('check_in_date', e.target.value)} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
+              </div>
+
+              {/* Row 3: Check-out, Room Type, Room (availability-aware), Rate, Total */}
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><CalendarCheck size={13} className="text-[#3B82F6]"/> Check-out Date *</label>
+                <input required type="date" value={form.check_out_date} min={form.check_in_date} onChange={e => handleDateChange('check_out_date', e.target.value)} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><BedDouble size={13} className="text-[#3B82F6]"/> Room Type *</label>
+                <select required value={form.room_type || ''} onChange={e => setForm({...form, room_type: e.target.value, room_id: '', rate_per_night: '', total_amount: ''})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-700 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500">
+                  <option value="">Select Room Type</option>
+                  {(() => {
+                    const selectedSite = sites.find(s => s.id === parseInt(form.site_id));
+                    if (!selectedSite) return null;
+                    
+                    if (selectedSite.site_type === 'service_apartment') {
+                      return (
+                        <>
+                          <option value="1BHK">1BHK</option>
+                          <option value="2BHK">2BHK</option>
+                          <option value="3BHK">3BHK</option>
+                          <option value="Home Stay">Home Stay</option>
+                          <option value="Room">Room</option>
+                          <option value="Villa">Villa</option>
+                        </>
+                      );
+                    } else {
+                      return (
+                        <>
+                          <option value="Deluxe">Deluxe</option>
+                          <option value="Home Stay">Home Stay</option>
+                          <option value="King Studio">King Studio</option>
+                          <option value="Room">Room</option>
+                          <option value="Standard">Standard</option>
+                          <option value="Superior King">Superior King</option>
+                        </>
+                      );
+                    }
+                  })()}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5">
+                  <BedDouble size={13} className="text-[#3B82F6]"/> Room / Unit *
+                  {loadingAvail && <span className="ml-1 text-[10px] font-normal text-gray-400 animate-pulse">checking availability…</span>}
+                  {!loadingAvail && form.site_id && form.check_in_date && form.check_out_date && (
+                    <span className="ml-1 text-[10px] font-bold text-green-600">
+                      {(isViewOnly ? rooms.filter(r => r.id === parseInt(form.room_id)) : availRooms).filter(r => !form.room_type || r.room_type === form.room_type).length} available
+                    </span>
+                  )}
+                </label>
+                <select
+                  required
+                  value={form.room_id}
+                  onChange={e => handleRoomSelect(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-700 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500"
+                >
+                  <option value="">
+                    {!form.site_id || !form.check_in_date || !form.check_out_date
+                      ? 'Select site & dates first'
+                      : loadingAvail ? 'Checking availability…'
+                      : (isViewOnly ? rooms.filter(r => r.id === parseInt(form.room_id)) : availRooms).filter(r => !form.room_type || r.room_type === form.room_type).length === 0 ? 'No rooms available'
+                      : 'Select available room'}
+                  </option>
+                  {(isViewOnly ? rooms.filter(r => r.id === parseInt(form.room_id)) : availRooms)
+                    .filter(r => !form.room_type || r.room_type === form.room_type)
+                    .map(r => (
+                      <option key={r.id} value={r.id}>
+                        {r.room_number} — {r.room_type}{r.rate_per_night ? ` (₹${parseFloat(r.rate_per_night).toLocaleString('en-IN')}/night)` : ''}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><BedDouble size={13} className="text-[#3B82F6]"/> Rate / Night (₹)</label>
+                <input
+                  type="number"
+                  value={form.rate_per_night || form.rate || ''}
+                  onChange={e => {
+                    const rate = parseFloat(e.target.value) || '';
+                    setForm(prev => ({ ...prev, rate_per_night: rate, total_amount: rate && nights ? rate * nights : '' }));
+                  }}
+                  placeholder="Auto from room"
+                  className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500"
+                />
+              </div>
+
+              {/* Row 4: Total, Remarks */}
+              <div>
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><CreditCard size={13} className="text-[#3B82F6]"/> Total Amount (₹)</label>
+                <div className="relative">
+                  <input
+                    required type="number"
+                    value={form.total_amount}
+                    onChange={e => setForm({...form, total_amount: e.target.value})}
+                    className="w-full px-3 py-2 bg-white border border-[#2563EB] rounded-lg text-sm font-bold text-[#2563EB] outline-none focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500"
+                    placeholder="0.00"
+                  />
+                  {nights > 0 && (form.rate_per_night || form.rate) && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">
+                      {nights}N × ₹{parseFloat(form.rate_per_night || form.rate).toLocaleString('en-IN')}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="md:col-span-3">
+                <label className="block text-[13px] font-bold text-[#4B5563] mb-1.5 flex items-center gap-1.5"><FileText size={13} className="text-[#3B82F6]"/> Remarks / Narration</label>
+                <input value={form.remarks} onChange={e => setForm({...form, remarks: e.target.value})} placeholder="Add a note…" className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm font-medium text-gray-900 outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:text-gray-500" />
+              </div>
+            </fieldset>
+
+            {/* Summary strip */}
+            {(nights > 0 || form.total_amount) && (
+              <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100 flex flex-wrap items-center gap-6 text-[13px] font-semibold text-blue-700">
+                {nights > 0 && <span className="flex items-center gap-1.5"><Moon size={14}/> {nights} Night{nights > 1 ? 's' : ''}</span>}
+                {selectedRoom && <span className="flex items-center gap-1.5"><BedDouble size={14}/> Room {selectedRoom.room_number}</span>}
+                {form.total_amount && <span className="ml-auto text-[16px] font-black text-[#1D4ED8]">₹ {parseFloat(form.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-[#E5E7EB]">
+              <button type="button" onClick={() => { setViewMode('list'); resetForm(); }} className="px-5 py-2.5 text-sm font-bold text-gray-700 bg-white border border-[#E5E7EB] rounded-lg hover:bg-gray-50 shadow-sm">
+                {isViewOnly ? 'Close' : 'Cancel'}
+              </button>
+              {!isViewOnly && (
+                <button type="submit" className="px-5 py-2.5 text-sm font-bold text-white bg-[#2563EB] rounded-lg hover:bg-blue-700 shadow-sm">
+                  {editId ? 'Save Changes' : 'Confirm Booking'}
+                </button>
+              )}
+            </div>
+          </form>
+        )}
       </div>
     );
   }
