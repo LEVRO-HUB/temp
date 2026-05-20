@@ -478,7 +478,7 @@ export default function BookingGantt({ sites = [], onCreateBooking }) {
             style={{ position: 'fixed', top, left }}
             onClose={() => setPopover(null)}
             onCheckIn={b => navigate(`/check-in/${b.id}`)}
-            onCheckOut={b => askConfirm('checked_out', b)}
+            onCheckOut={b => navigate(`/check-out/${b.id}`)}
             onCancel={b => askConfirm('cancelled', b)}
           />
         );

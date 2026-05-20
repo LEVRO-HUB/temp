@@ -247,3 +247,85 @@ Then grant the role in the RBAC screen (Roles → Edit Permissions).
 | Database | PostgreSQL (Supabase) |
 | Auth | JWT Bearer token, role-based permissions |
 | Deployment | Cloudflare Pages (frontend), EC2 / Node host (backend) |
+
+---
+
+## Phase 2B Part 1 — Dedicated Check-In Screen
+
+### DB Migration (run before deploying backend)
+
+```sql
+ALTER TABLE "Booking"
+  ADD COLUMN IF NOT EXISTS "id_type"      TEXT,
+  ADD COLUMN IF NOT EXISTS "id_number"    TEXT,
+  ADD COLUMN IF NOT EXISTS "arrival_time" TIMESTAMPTZ;
+```
+
+File: `migration_phase2b_part1.sql` (in repo root)
+
+### New API endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/bookings/:id` | Fetch a single booking with room, site, employee |
+| `PATCH` | `/api/bookings/:id/checkin` | Check in — saves arrival_time, id_type, id_number, guest_count |
+
+### New files
+
+| File | Path |
+|---|---|
+| `CheckIn.jsx` | `chippy_erp_frontend/src/pages/CheckIn.jsx` |
+
+### Check-In page features
+
+- Left panel: full booking summary (guest, room, dates, amount)
+- Right panel: arrival time picker, guest count, ID type dropdown, ID number, remarks
+- Validates ID type and number before submitting
+- Success screen with auto-redirect after 2s
+- Wrong-status guard (shows clear error if booking is not confirmed)
+- Entry points: Check In button in booking list + Gantt popup
+
+---
+
+## Phase 2B Part 2 — Dedicated Check-Out Screen
+
+### New API endpoint
+
+| Method | Path | Description |
+|---|---|---|
+| `PATCH` | `/api/bookings/:id/checkout` | Check out — sets status=checked_out, actual_check_out=now, frees room |
+
+### New files
+
+| File | Path |
+|---|---|
+| `CheckOut.jsx` | `chippy_erp_frontend/src/pages/CheckOut.jsx` |
+
+### Check-Out page features
+
+- **Stay summary** — guest, room, site, booked vs actual dates, actual nights stayed, ID verified badge
+- **Payment summary** — total charged, total paid, outstanding balance with colour coding
+- **Payment history** — collapsible list of all transactions with method badges (Cash, UPI, Bank, Card, Cheque, RTGS)
+- **Quick stats strip** — 4 cards: Total Charged / Total Paid / Outstanding / Nights Stayed
+- **Outstanding balance warning** — red banner if unpaid, green confirmation if fully settled
+- **Remarks field** — final notes about the stay
+- **Confirm Check-Out** — submits PATCH /checkout, success screen with outstanding reminder if any
+- Entry points: Check Out button in booking list + Gantt popup
+
+### Deployment steps (Phase 2B Part 2)
+
+No DB migration needed — uses existing schema.
+
+Copy:
+```
+CheckOut.jsx → chippy_erp_frontend/src/pages/CheckOut.jsx  (new)
+```
+
+Updated files:
+```
+App.jsx             — /check-out/:bookingId route added
+SalesBooking.jsx    — Check Out button navigates to /check-out/:id
+BookingGantt.jsx    — Gantt popup Check Out navigates to /check-out/:id
+booking.controller.js — checkOutBooking added
+booking.routes.js   — PATCH /:id/checkout registered
+```

@@ -348,7 +348,7 @@ export default function SalesBooking() {
           </button>
         )}
         {s === 'checked_in' && (
-          <button onClick={() => handleStatusChange(bkg, 'checked_out')} className="px-2.5 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-[11px] font-bold hover:bg-blue-100 transition-colors flex items-center gap-1">
+          <button onClick={() => navigate(`/check-out/${bkg.id}`)} className="px-2.5 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-[11px] font-bold hover:bg-blue-100 transition-colors flex items-center gap-1">
             <LogOut size={11}/> Check Out
           </button>
         )}
