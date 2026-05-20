@@ -210,6 +210,25 @@ export const createBooking = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
+// GET SINGLE BOOKING BY ID
+// GET /api/bookings/:id
+// ─────────────────────────────────────────────
+export const getBookingById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const booking = await prisma.booking.findUnique({
+      where:   { id: parseInt(id), is_deleted: false },
+      include: bookingInclude,
+    });
+    if (!booking) return res.status(404).json({ error: 'Booking not found' });
+    res.json(booking);
+  } catch (error) {
+    console.error('getBookingById error:', error);
+    res.status(500).json({ error: 'Failed to fetch booking' });
+  }
+};
+
+// ─────────────────────────────────────────────
 // UPDATE BOOKING (edit guest/dates/room)
 // ─────────────────────────────────────────────
 export const updateBooking = async (req, res) => {
@@ -409,6 +428,56 @@ export const deleteBooking = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete booking' });
   }
 };
+// ─────────────────────────────────────────────
+// DEDICATED CHECK-IN  (Phase 2B-Part1)
+// PATCH /api/bookings/:id/checkin
+// body: { arrival_time?, id_type?, id_number?, guest_count?, remarks? }
+// ─────────────────────────────────────────────
+export const checkInBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { arrival_time, id_type, id_number, guest_count, remarks } = req.body;
+
+    const existing = await prisma.booking.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ error: 'Booking not found' });
+    if (existing.is_deleted) return res.status(404).json({ error: 'Booking not found' });
+
+    if (existing.status !== 'confirmed') {
+      return res.status(400).json({
+        error: `Cannot check in. Current status is "${existing.status}". Only confirmed bookings can be checked in.`,
+      });
+    }
+
+    const now = new Date();
+    const updateData = {
+      status:          'checked_in',
+      actual_check_in: arrival_time ? new Date(arrival_time) : now,
+    };
+
+    if (id_type    !== undefined) updateData.id_type    = id_type    || null;
+    if (id_number  !== undefined) updateData.id_number  = id_number  || null;
+    if (guest_count)              updateData.guest_count = parseInt(guest_count);
+    if (remarks    !== undefined) updateData.remarks     = remarks    || existing.remarks;
+
+    const updated = await prisma.booking.update({
+      where:   { id: parseInt(id) },
+      data:    updateData,
+      include: bookingInclude,
+    });
+
+    // Mark room occupied
+    await prisma.room.update({
+      where: { id: existing.room_id },
+      data:  { status: 'occupied' },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('checkInBooking error:', error);
+    res.status(500).json({ error: 'Failed to check in booking' });
+  }
+};
+
 // ─────────────────────────────────────────────
 // GANTT DATA  (Phase 2A)
 // GET /api/bookings/gantt?site_id=X&from=YYYY-MM-DD&to=YYYY-MM-DD

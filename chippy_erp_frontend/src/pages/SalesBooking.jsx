@@ -343,7 +343,7 @@ export default function SalesBooking() {
           <button onClick={() => handleEdit(bkg, false)} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><Edit2 size={15}/></button>
         )}
         {s === 'confirmed' && (
-          <button onClick={() => handleStatusChange(bkg, 'checked_in')} className="px-2.5 py-1 bg-green-50 text-green-600 border border-green-100 rounded-lg text-[11px] font-bold hover:bg-green-100 transition-colors flex items-center gap-1">
+          <button onClick={() => navigate(`/check-in/${bkg.id}`)} className="px-2.5 py-1 bg-green-50 text-green-600 border border-green-100 rounded-lg text-[11px] font-bold hover:bg-green-100 transition-colors flex items-center gap-1">
             <LogIn size={11}/> Check In
           </button>
         )}

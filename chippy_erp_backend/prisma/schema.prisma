@@ -295,8 +295,11 @@ model Booking {
   booking_date    DateTime      @default(now())
   rate_per_night  Decimal?      @db.Decimal(10, 2)  // ✅ NEW — snapshot of rate at time of booking
   total_amount    Decimal       @db.Decimal(12, 2)
-  actual_check_in  DateTime?   // ✅ NEW — when they actually arrived
-  actual_check_out DateTime?   // ✅ NEW — when they actually left
+  actual_check_in  DateTime?   // ✅ Phase 1 — when they actually arrived
+  actual_check_out DateTime?   // ✅ Phase 1 — when they actually left
+  id_type         String?      // Phase 2B — Aadhaar / Passport / Driving Licence / Other
+  id_number       String?      // Phase 2B — ID document number
+  arrival_time    DateTime?    // Phase 2B — actual arrival time (can differ from check_in_date)
   remarks         String?
   is_deleted      Boolean       @default(false)
   created_by      Int
