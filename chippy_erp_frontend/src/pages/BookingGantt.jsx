@@ -214,7 +214,7 @@ export default function BookingGantt({ sites = [], onCreateBooking }) {
   }, [gantt]);
 
   // ── Navigation ─────────────────────────────────────────────────────────────
-  const navigate = (n) => setFromDate(prev => addDays(prev, n));
+  const shiftWindow = (n) => setFromDate(prev => addDays(prev, n));
   const goToToday = () => setFromDate(addDays(today, -3));
 
   // ── Status action ──────────────────────────────────────────────────────────
@@ -287,11 +287,11 @@ export default function BookingGantt({ sites = [], onCreateBooking }) {
 
         {/* Nav arrows */}
         <div className="flex items-center gap-1">
-          <button onClick={() => navigate(-7)}  className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors"><ChevronLeft size={16}/></button>
-          <button onClick={() => navigate(-1)}  className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors text-[11px] font-bold px-2">‹1d</button>
+          <button onClick={() => shiftWindow(-7)}  className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors"><ChevronLeft size={16}/></button>
+          <button onClick={() => shiftWindow(-1)}  className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors text-[11px] font-bold px-2">‹1d</button>
           <button onClick={goToToday}           className="px-3 py-1.5 text-[12px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">Today</button>
-          <button onClick={() => navigate(1)}   className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors text-[11px] font-bold px-2">1d›</button>
-          <button onClick={() => navigate(7)}   className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors"><ChevronRight size={16}/></button>
+          <button onClick={() => shiftWindow(1)}   className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors text-[11px] font-bold px-2">1d›</button>
+          <button onClick={() => shiftWindow(7)}   className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors"><ChevronRight size={16}/></button>
         </div>
 
         {/* Range selector */}
