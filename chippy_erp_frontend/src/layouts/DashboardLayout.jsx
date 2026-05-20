@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Users, CreditCard, Box, Map, Search, Bell, LogOut, ChevronDown, UserCircle, ShoppingCart, UserCheck, BarChart3, ShieldCheck, X, Menu, Home, CalendarDays, MoreHorizontal } from 'lucide-react';
 import { jwtDecode } from 'jwt-decode';
@@ -10,6 +10,7 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [user, setUser] = useState({ name: 'Loading...', role: 'Admin' });
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const [permissions, setPermissions] = useState([]);
   const [loadingPerms, setLoadingPerms] = useState(true);
@@ -49,6 +50,18 @@ export default function DashboardLayout() {
     };
 
     fetchUserPermissions();
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const hasAccess = (moduleKey) => {
@@ -203,10 +216,17 @@ export default function DashboardLayout() {
               <span className="text-xl font-bold text-gray-900 md:hidden tracking-tight">Chippy ERP</span>
             </div>
 
-            {/* Left search */}
-            <div className="flex items-center bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg px-4 py-2 w-96 hidden lg:flex">
-              <Search size={16} className="text-gray-400 mr-2" />
-              <input type="text" placeholder="Search by mobile, name, booking id..." className="bg-transparent border-none outline-none text-sm w-full text-gray-700" />
+            {/* Left Header Widget */}
+            <div className="hidden lg:flex items-center gap-3">
+              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                <CalendarDays size={18} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider leading-none">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </span>
+                <span className="text-[13px] text-gray-800 font-extrabold leading-none mt-1.5">Chippy Hospitality Group</span>
+              </div>
             </div>
           </div>
 
@@ -229,7 +249,7 @@ export default function DashboardLayout() {
               <span className="text-[11px] font-semibold text-gray-600">Connected</span>
             </div>
 
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <div onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-3 cursor-pointer pl-4 md:border-l border-[#E5E7EB] hover:opacity-80 transition-opacity">
                 <img src={`https://ui-avatars.com/api/?name=${user.name}&background=2563EB&color=fff&rounded=true`} alt="User" className="w-8 h-8 rounded-lg md:rounded-full" />
                 <div className="hidden md:block text-sm">

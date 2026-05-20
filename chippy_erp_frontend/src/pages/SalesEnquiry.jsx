@@ -1,22 +1,86 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Eye, Edit2, Calendar, ArrowLeft, User, Phone, Mail, MapPin, Building2, BedDouble, Clock, PhoneCall, Clock3, Flag, FileText, Info, X, Search } from 'lucide-react';
+import { Plus, Eye, Edit2, Calendar, ArrowLeft, User, Phone, Mail, MapPin, Building2, BedDouble, Clock, PhoneCall, Clock3, Flag, FileText, Info, X, Search, CalendarCheck } from 'lucide-react';
+import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import Pagination from '../components/Pagination';
 import API_BASE_URL from '../config';
 
 export default function SalesEnquiry() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [enquiries, setEnquiries] = useState([]);
   const [sites, setSites] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [viewMode, setViewMode] = useState('list');
   const [editId, setEditId] = useState(null);
   const [isViewOnly, setIsViewOnly] = useState(false);
+  const [submitAction, setSubmitAction] = useState('save');
 
   const [form, setForm] = useState({
-    guest_name: '', mobile_number: '', place: '', site_id: '',
-    room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '',
-    enquiry_source: 'walk_in', remarks: '', status: 'new', time: ''
+    guest_name: '',
+    mobile_number: '',
+    place: '',
+    site_id: '',
+    room_type_requested: 'Room',
+    check_in_date: '',
+    check_out_date: '',
+    no_of_days: '',
+    enquiry_source: 'walk_in',
+    remarks: '',
+    status: 'new',
+    time: ''
   });
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const mode = searchParams.get('mode') || 'list';
+    const id = searchParams.get('id') ? parseInt(searchParams.get('id')) : null;
+    const viewOnly = searchParams.get('view') === 'true';
+
+    setViewMode(mode);
+    setEditId(id);
+    setIsViewOnly(viewOnly);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const id = searchParams.get('id') ? parseInt(searchParams.get('id')) : null;
+    if (id && enquiries.length > 0) {
+      const enq = enquiries.find(e => e.id == id);
+      if (enq) {
+        setForm({
+          guest_name: enq.guest_name,
+          mobile_number: enq.mobile_number,
+          place: enq.place || '',
+          site_id: enq.site_id || '',
+          room_type_requested: enq.room_type_requested || 'Room',
+          check_in_date: enq.check_in_date ? new Date(enq.check_in_date).toISOString().split('T')[0] : '',
+          check_out_date: enq.check_out_date ? new Date(enq.check_out_date).toISOString().split('T')[0] : '',
+          no_of_days: enq.no_of_days || '',
+          enquiry_source: enq.enquiry_source || 'walk_in',
+          remarks: enq.remarks || '',
+          status: enq.status || 'new',
+          time: ''
+        });
+      }
+    } else if (!id) {
+      setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: 'walk_in', remarks: '', status: 'new', time: '' });
+    }
+  }, [searchParams, enquiries]);
+
+  useEffect(() => {
+    if (form.check_in_date && form.check_out_date) {
+      const start = new Date(form.check_in_date);
+      const end = new Date(form.check_out_date);
+      const diffTime = end - start;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setForm(prev => ({
+        ...prev,
+        no_of_days: diffDays >= 0 ? diffDays.toString() : ''
+      }));
+    }
+  }, [form.check_in_date, form.check_out_date]);
 
   const [employees, setEmployees] = useState([]);
   const [filterSite, setFilterSite] = useState('All Sites');
@@ -28,11 +92,13 @@ export default function SalesEnquiry() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
-  const [limit] = useState(10);
+  const [limit] = useState(100);
 
   useEffect(() => {
     fetchData();
   }, [currentPage, filterStatus, searchTerm]); // Refresh on page or major filter change
+
+
 
   const fetchData = async () => {
     try {
@@ -43,14 +109,15 @@ export default function SalesEnquiry() {
       const queryParams = new URLSearchParams({
         page: currentPage,
         limit,
-        status: filterStatus !== 'All Status' ? filterStatus : '',
+        status: filterStatus !== 'All Status' ? filterStatus.toLowerCase().replace('-', '_') : '',
         search: searchTerm
       });
 
-      const [resEnq, resSites, resEmps] = await Promise.all([
+      const [resEnq, resSites, resEmps, resRooms] = await Promise.all([
         fetch(`${API_BASE_URL}/api/enquiries?${queryParams}`, { headers }),
         fetch(`${API_BASE_URL}/api/locations/sites`, { headers }),
-        fetch(`${API_BASE_URL}/api/employees`, { headers })
+        fetch(`${API_BASE_URL}/api/employees`, { headers }),
+        fetch(`${API_BASE_URL}/api/rooms`, { headers })
       ]);
 
       if (resEnq.ok) {
@@ -60,6 +127,7 @@ export default function SalesEnquiry() {
       }
       if (resSites.ok) setSites(await resSites.json());
       if (resEmps.ok) setEmployees(await resEmps.json());
+      if (resRooms.ok) setRooms(await resRooms.json());
     } finally {
       setLoading(false);
     }
@@ -67,47 +135,66 @@ export default function SalesEnquiry() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isViewOnly) return setViewMode('list');
+    if (isViewOnly) {
+      setSearchParams({});
+      return;
+    }
 
     const token = localStorage.getItem('token');
     const method = editId ? 'PUT' : 'POST';
     const url = editId ? `${API_BASE_URL}/api/enquiries/${editId}` : `${API_BASE_URL}/api/enquiries`;
 
-    await fetch(url, {
+    const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({ ...form, no_of_days: parseInt(form.no_of_days) || 0 })
     });
 
-    resetForm();
-    fetchData();
+    if (res.ok) {
+      const savedEnq = await res.json().catch(() => null);
+      const wasConverted = form.status === 'converted';
+
+      if (submitAction === 'new' && !editId) {
+        setForm({
+          guest_name: '',
+          mobile_number: '',
+          place: '',
+          site_id: '',
+          room_type_requested: 'Room',
+          check_in_date: '',
+          check_out_date: '',
+          no_of_days: '',
+          enquiry_source: 'walk_in',
+          remarks: '',
+          status: 'new',
+          time: ''
+        });
+        fetchData();
+      } else {
+        resetForm();
+        fetchData();
+      }
+
+      if (wasConverted && savedEnq) {
+        setTimeout(() => {
+          const confirmBook = window.confirm("Enquiry marked as Converted! Would you like to create a booking for this guest now?");
+          if (confirmBook) {
+            navigate('/bookings', { state: { prefilledEnquiry: savedEnq } });
+          }
+        }, 100);
+      }
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.message || 'Failed to save enquiry');
+    }
   };
 
   const handleEdit = (enq, viewOnly = false) => {
-    setForm({
-      guest_name: enq.guest_name,
-      mobile_number: enq.mobile_number,
-      place: enq.place || '',
-      site_id: enq.site_id || '',
-      room_type_requested: enq.room_type_requested || 'Room',
-      check_in_date: enq.check_in_date ? new Date(enq.check_in_date).toISOString().split('T')[0] : '',
-      check_out_date: enq.check_out_date ? new Date(enq.check_out_date).toISOString().split('T')[0] : '',
-      no_of_days: enq.no_of_days || '',
-      enquiry_source: enq.enquiry_source || 'walk_in',
-      remarks: enq.remarks || '',
-      status: enq.status || 'new',
-      time: ''
-    });
-    setEditId(enq.id);
-    setIsViewOnly(viewOnly);
-    setViewMode('create');
+    setSearchParams({ mode: 'create', id: enq.id.toString(), view: viewOnly ? 'true' : 'false' });
   };
 
   const resetForm = () => {
-    setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: 'walk_in', remarks: '', status: 'new', time: '' });
-    setEditId(null);
-    setIsViewOnly(false);
-    setViewMode('list');
+    setSearchParams({});
   };
 
   const getStatusPill = (status) => {
@@ -122,8 +209,28 @@ export default function SalesEnquiry() {
 
   const filteredData = enquiries.filter(e => {
     if (filterSite !== 'All Sites' && e.site?.site_name !== filterSite) return false;
-    if (filterStatus !== 'All Status' && (e.status || '').toLowerCase() !== filterStatus.toLowerCase()) return false;
-    if (filterSource !== 'All Sources' && (e.enquiry_source || 'Walk-in') !== filterSource) return false;
+
+    if (filterStatus !== 'All Status') {
+      const normalizedFilterStatus = filterStatus.toLowerCase().replace('-', '_');
+      const normalizedEnquiryStatus = (e.status || '').toLowerCase().replace('-', '_');
+      if (normalizedEnquiryStatus !== normalizedFilterStatus) return false;
+    }
+
+    if (filterSource !== 'All Sources') {
+      const sourceMap = {
+        'walk-in': 'walk_in',
+        'walk_in': 'walk_in',
+        'phone call': 'phone_call',
+        'phone_call': 'phone_call',
+        'online': 'online_platforms',
+        'online_platforms': 'online_platforms',
+        'referral': 'referral'
+      };
+      const key = filterSource.toLowerCase().replace('-', '_');
+      const targetSource = sourceMap[key] || key;
+      const enquirySource = (e.enquiry_source || '').toLowerCase();
+      if (enquirySource !== targetSource) return false;
+    }
 
     if (filterEmployee && e.employee?.name !== filterEmployee) return false;
 
@@ -344,7 +451,7 @@ export default function SalesEnquiry() {
               </div>
               <div>
                 <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><Building2 size={14} className="text-[#3B82F6]" /> Site <span className="text-red-500">*</span></label>
-                <select required value={form.site_id} onChange={e => setForm({ ...form, site_id: e.target.value })} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
+                <select required value={form.site_id} onChange={e => setForm({ ...form, site_id: e.target.value, room_type_requested: '' })} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
                   <option value="">Select Site</option>
                   {sites.map(s => <option key={s.id} value={s.id}>{s.site_name}</option>)}
                 </select>
@@ -353,11 +460,34 @@ export default function SalesEnquiry() {
                 <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5563] mb-1.5"><BedDouble size={14} className="text-[#3B82F6]" /> Room Type Requested</label>
                 <select value={form.room_type_requested} onChange={e => setForm({ ...form, room_type_requested: e.target.value })} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500 transition-all">
                   <option value="">Select Room Type</option>
-                  <option value="OneBHK">1 BHK</option>
-                  <option value="TwoBHK">2 BHK</option>
-                  <option value="ThreeBHK">3 BHK</option>
-                  <option value="Villa">Villa</option>
-                  <option value="Room">Room</option>
+                  {(() => {
+                    const selectedSite = sites.find(s => s.id === parseInt(form.site_id));
+                    if (!selectedSite) return null;
+
+                    if (selectedSite.site_type === 'service_apartment') {
+                      return (
+                        <>
+                          <option value="1BHK">1BHK</option>
+                          <option value="2BHK">2BHK</option>
+                          <option value="3BHK">3BHK</option>
+                          <option value="Home Stay">Home Stay</option>
+                          <option value="Room">Room</option>
+                          <option value="Villa">Villa</option>
+                        </>
+                      );
+                    } else {
+                      return (
+                        <>
+                          <option value="Deluxe">Deluxe</option>
+                          <option value="Home Stay">Home Stay</option>
+                          <option value="King Studio">King Studio</option>
+                          <option value="Room">Room</option>
+                          <option value="Standard">Standard</option>
+                          <option value="Superior King">Superior King</option>
+                        </>
+                      );
+                    }
+                  })()}
                 </select>
               </div>
               <div>
@@ -405,8 +535,8 @@ export default function SalesEnquiry() {
               <button type="button" onClick={resetForm} className="px-5 py-2.5 text-sm font-bold text-gray-700 bg-white border border-[#E5E7EB] rounded-lg hover:bg-gray-50 transition-colors shadow-sm">Cancel</button>
               {!isViewOnly && (
                 <>
-                  <button type="submit" className="px-5 py-2.5 text-sm font-bold text-[#2563EB] bg-white border border-[#BFDBFE] rounded-lg hover:bg-blue-50 transition-colors shadow-sm">{editId ? 'Apply Update' : 'Save Enquiry'}</button>
-                  {!editId && <button type="submit" className="px-5 py-2.5 text-sm font-bold text-white bg-[#2563EB] rounded-lg hover:bg-blue-700 transition-colors shadow-sm">Save & New</button>}
+                  <button type="submit" onClick={() => setSubmitAction('save')} className="px-5 py-2.5 text-sm font-bold text-[#2563EB] bg-white border border-[#BFDBFE] rounded-lg hover:bg-blue-50 transition-colors shadow-sm">{editId ? 'Apply Update' : 'Save Enquiry'}</button>
+                  {!editId && <button type="submit" onClick={() => setSubmitAction('new')} className="px-5 py-2.5 text-sm font-bold text-white bg-[#2563EB] rounded-lg hover:bg-blue-700 transition-colors shadow-sm">Save & New</button>}
                 </>
               )}
             </div>
@@ -421,107 +551,119 @@ export default function SalesEnquiry() {
     <div className="space-y-6 max-w-[1600px] mx-auto p-4 md:p-0">
       <div className="flex justify-between items-center pb-4 border-b border-[#E5E7EB]">
         <h1 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight">Sales Enquiries</h1>
-        <button onClick={() => { setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: 'walk_in', remarks: '', status: 'new', time: '' }); setEditId(null); setIsViewOnly(false); setViewMode('create'); }} className="bg-[#1A56DB] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-medium text-xs md:text-sm flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm">
+        <button onClick={() => setSearchParams({ mode: 'create' })} className="bg-[#1A56DB] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-medium text-xs md:text-sm flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm">
           <Plus size={16} /> Add Enquiry
         </button>
       </div>
 
       <div className="bg-white border border-[#E5E7EB] rounded-[12px] shadow-sm flex flex-col">
         <div className="p-4 border-b border-[#E5E7EB] bg-gray-50/50 rounded-t-[12px] space-y-4">
-          {/* Top Row: Dates and Search */}
-          <div className="flex flex-col gap-3">
-            <div className="relative w-full">
+          {/* Top Row: All Filters & Search */}
+          <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-3">
+            <div className="relative w-full md:w-52 shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search guest or mobile..." 
+              <input
+                type="text"
+                placeholder="Search guest or mobile..."
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                 className="w-full pl-10 pr-4 py-2 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg text-sm text-gray-700 outline-none focus:border-[#2563EB]"
               />
             </div>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <select value={filterSite} onChange={e => setFilterSite(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none">
-                <option>All Sites</option>
-                {sites.map(s => <option key={s.id} value={s.site_name}>{s.site_name}</option>)}
-              </select>
-              
-              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none">
-                <option>All Status</option>
-                <option>New</option>
-                <option>Follow-up</option>
-                <option>Converted</option>
-                <option>Lost</option>
-              </select>
-            </div>
 
-            <div className="flex gap-2">
-              <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="flex-1 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none focus:border-[#2563EB]" />
-              <button onClick={() => { setFilterSite('All Sites'); setFilterStatus('All Status'); setFilterSource('All Sources'); setFilterEmployee(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); setCurrentPage(1); }} className="px-4 py-2 text-[#2563EB] border border-[#BFDBFE] bg-white hover:bg-blue-50 rounded-lg text-[13px] font-bold transition-colors shadow-sm">
-                Reset
-              </button>
-            </div>
-          </div>
+            <select value={filterSite} onChange={e => setFilterSite(e.target.value)} className="w-full md:w-44 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none">
+              <option>All Sites</option>
+              {sites.map(s => <option key={s.id} value={s.site_name}>{s.site_name}</option>)}
+            </select>
 
-          {/* Desktop Only: Additional Filters */}
-          <div className="hidden lg:grid grid-cols-4 gap-3">
-            <select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none">
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full md:w-32 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none">
+              <option>All Status</option>
+              <option>New</option>
+              <option>Follow-up</option>
+              <option>Converted</option>
+              <option>Lost</option>
+            </select>
+
+            <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="w-full md:w-36 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none focus:border-[#2563EB]" />
+
+            <select value={filterEmployee} onChange={e => setFilterEmployee(e.target.value)} className="w-full md:w-44 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none">
               <option value="">All Employees</option>
               {employees.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
             </select>
-            <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className="px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none">
+
+            <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className="w-full md:w-32 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-gray-700 font-medium outline-none">
               <option>All Sources</option>
               <option>Walk-in</option>
               <option>Phone Call</option>
               <option>Online</option>
             </select>
+
+            <button onClick={() => { setFilterSite('All Sites'); setFilterStatus('All Status'); setFilterSource('All Sources'); setFilterEmployee(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); setCurrentPage(1); }} className="w-full md:w-auto px-4 py-2 text-[#2563EB] border border-[#BFDBFE] bg-white hover:bg-blue-50 rounded-lg text-[13px] font-bold transition-colors shadow-sm whitespace-nowrap">
+              Reset
+            </button>
           </div>
         </div>
 
-        <div className="overflow-x-auto hidden md:block">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="text-gray-500 font-semibold border-b border-[#E5E7EB]">
+        <div className="overflow-y-auto max-h-[600px] hidden md:block border-b border-[#E5E7EB]">
+          <table className="w-full text-left text-sm border-separate border-spacing-0 relative">
+            <thead className="text-gray-500 font-semibold sticky top-0 z-10">
               <tr>
-                <th className="px-6 py-4 font-medium text-[12px] tracking-wider">S.No</th>
-                <th className="px-6 py-4 font-medium text-[12px] tracking-wider">Entry Date & Time</th>
-                <th className="px-6 py-4 font-medium text-[12px] tracking-wider">Guest Name</th>
-                <th className="px-6 py-4 font-medium text-[12px] tracking-wider">Mobile</th>
-                <th className="px-6 py-4 font-medium text-[12px] tracking-wider">Site</th>
-                <th className="px-6 py-4 font-medium text-[12px] tracking-wider">Room Type</th>
-                <th className="px-6 py-4 font-medium text-[12px] tracking-wider">Check-in</th>
-                <th className="px-6 py-4 font-medium text-[12px] tracking-wider">Check-out</th>
-                <th className="px-6 py-4 font-medium text-[12px] tracking-wider">Source</th>
-                <th className="px-6 py-4 font-medium text-[12px] tracking-wider">Entry By</th>
-                <th className="px-6 py-4 font-medium text-[12px] tracking-wider">Status</th>
-                <th className="px-6 py-4 font-medium text-[12px] tracking-wider text-right">Actions</th>
+                <th className="px-3 py-3.5 font-medium text-[11px] tracking-wider bg-white sticky top-0 border-b border-[#E5E7EB] z-10">S.No</th>
+                <th className="px-3 py-3.5 font-medium text-[11px] tracking-wider whitespace-nowrap bg-white sticky top-0 border-b border-[#E5E7EB] z-10">Entry Date & Time</th>
+                <th className="px-3 py-3.5 font-medium text-[11px] tracking-wider whitespace-nowrap bg-white sticky top-0 border-b border-[#E5E7EB] z-10">Entry By</th>
+                <th className="px-3 py-3.5 font-medium text-[11px] tracking-wider bg-white sticky top-0 border-b border-[#E5E7EB] z-10">Guest Details</th>
+                <th className="px-3 py-3.5 font-medium text-[11px] tracking-wider bg-white sticky top-0 border-b border-[#E5E7EB] z-10">Property / Room Type</th>
+                <th className="px-3 py-3.5 font-medium text-[11px] tracking-wider whitespace-nowrap bg-white sticky top-0 border-b border-[#E5E7EB] z-10">Stay Dates</th>
+                <th className="px-3 py-3.5 font-medium text-[11px] tracking-wider bg-white sticky top-0 border-b border-[#E5E7EB] z-10">Source</th>
+                <th className="px-3 py-3.5 font-medium text-[11px] tracking-wider bg-white sticky top-0 border-b border-[#E5E7EB] z-10">Status</th>
+                <th className="px-3 py-3.5 font-medium text-[11px] tracking-wider text-right bg-white sticky top-0 border-b border-[#E5E7EB] z-10">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E7EB] text-gray-800 font-medium">
               {loading ? (
-                <tr><td colSpan={12} className="px-6 py-12 text-center text-gray-500">Loading records...</td></tr>
-              ) : enquiries.length === 0 ? (
-                <tr><td colSpan={12} className="px-6 py-12 text-center text-gray-500">No matching inquiries found.</td></tr>
-              ) : enquiries.map((enq, index) => (
+                <tr><td colSpan={9} className="px-3 py-12 text-center text-gray-500">Loading records...</td></tr>
+              ) : filteredData.length === 0 ? (
+                <tr><td colSpan={9} className="px-3 py-12 text-center text-gray-500">No matching inquiries found.</td></tr>
+              ) : filteredData.map((enq, index) => (
                 <tr key={enq.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 text-gray-500 font-bold">{(currentPage - 1) * limit + index + 1}</td>
-                  <td className="px-6 py-4 text-gray-500">
+                  <td className="px-3 py-3.5 text-gray-500 font-bold text-xs border-b border-[#E5E7EB]">{(currentPage - 1) * limit + index + 1}</td>
+                  <td className="px-3 py-3.5 text-gray-500 whitespace-nowrap text-xs border-b border-[#E5E7EB]">
                     <div className="font-bold text-gray-900">{new Date(enq.enquiry_time || enq.created_at).toLocaleDateString('en-GB')}</div>
-                    <div className="text-[11px]">{new Date(enq.enquiry_time || enq.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">{new Date(enq.enquiry_time || enq.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                   </td>
-                  <td className="px-6 py-4 font-bold">{enq.guest_name}</td>
-                  <td className="px-6 py-4 text-gray-600">{enq.mobile_number}</td>
-                  <td className="px-6 py-4 text-gray-700">{enq.site?.site_name}</td>
-                  <td className="px-6 py-4 text-gray-700">{enq.room_type_requested || '--'}</td>
-                  <td className="px-6 py-4 text-gray-700">{enq.check_in_date ? new Date(enq.check_in_date).toLocaleDateString('en-GB') : '--'}</td>
-                  <td className="px-6 py-4 text-gray-700">{enq.check_out_date ? new Date(enq.check_out_date).toLocaleDateString('en-GB') : '--'}</td>
-                  <td className="px-6 py-4 text-gray-700">{enq.enquiry_source || 'Walk-in'}</td>
-                  <td className="px-6 py-4 font-bold text-gray-800">{enq.employee?.name || '--'}</td>
-                  <td className="px-6 py-4">{getStatusPill(enq.status)}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-3 text-blue-600">
-                      <button onClick={() => handleEdit(enq, true)} className="hover:text-blue-800"><Eye size={16} /></button>
-                      <button onClick={() => handleEdit(enq, false)} className="hover:text-blue-800"><Edit2 size={16} /></button>
+                  <td className="px-3 py-3.5 font-bold text-gray-800 text-xs whitespace-nowrap border-b border-[#E5E7EB]">{enq.employee?.name || '--'}</td>
+                  <td className="px-3 py-3.5 text-xs border-b border-[#E5E7EB]">
+                    <div className="font-bold text-gray-900 leading-tight">{enq.guest_name}</div>
+                    <div className="text-[10px] text-gray-500 font-bold tracking-wide mt-1">{enq.mobile_number}</div>
+                  </td>
+                  <td className="px-3 py-3.5 text-xs border-b border-[#E5E7EB]">
+                    <div className="font-bold text-gray-800 leading-tight">{enq.site?.site_name || '--'}</div>
+                    <div className="text-[10px] text-gray-400 font-bold tracking-wide mt-1 uppercase">{enq.room_type_requested || 'Room'}</div>
+                  </td>
+                  <td className="px-3 py-3.5 text-xs whitespace-nowrap border-b border-[#E5E7EB]">
+                    <div className="font-bold text-gray-900 leading-none">{enq.check_in_date ? new Date(enq.check_in_date).toLocaleDateString('en-GB') : '--'}</div>
+                    <div className="text-[10px] text-gray-400 font-bold tracking-wide mt-1.5 flex items-center gap-1">
+                      <span>to</span>
+                      <span className="text-gray-600">{enq.check_out_date ? new Date(enq.check_out_date).toLocaleDateString('en-GB') : '--'}</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3.5 text-gray-700 text-xs whitespace-nowrap capitalize border-b border-[#E5E7EB]">
+                    {enq.enquiry_source ? enq.enquiry_source.replace('_', ' ') : 'Walk-in'}
+                  </td>
+                  <td className="px-3 py-3.5 border-b border-[#E5E7EB]">{getStatusPill(enq.status)}</td>
+                  <td className="px-3 py-3.5 border-b border-[#E5E7EB]">
+                    <div className="flex items-center justify-end gap-2 text-blue-600">
+                      {enq.status?.toLowerCase() !== 'converted' && (
+                        <button
+                          onClick={() => navigate('/bookings', { state: { prefilledEnquiry: enq } })}
+                          className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 rounded-lg transition-colors border border-emerald-100 shadow-sm"
+                          title="Convert to Booking"
+                        >
+                          <CalendarCheck size={14} />
+                        </button>
+                      )}
+                      <button onClick={() => handleEdit(enq, true)} className="p-1.5 hover:bg-gray-100 rounded-lg text-blue-600 hover:text-blue-800 transition-colors" title="View"><Eye size={14} /></button>
+                      <button onClick={() => handleEdit(enq, false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-blue-600 hover:text-blue-800 transition-colors" title="Edit"><Edit2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -534,9 +676,9 @@ export default function SalesEnquiry() {
         <div className="md:hidden flex flex-col gap-3 p-4 bg-[#F8FAFC]">
           {loading ? (
             <div className="text-center py-8 text-sm text-gray-500 font-medium">Loading records...</div>
-          ) : enquiries.length === 0 ? (
+          ) : filteredData.length === 0 ? (
             <div className="text-center py-12 text-gray-500 text-sm">No matching inquiries found.</div>
-          ) : enquiries.map(enq => (
+          ) : filteredData.map(enq => (
             <div key={enq.id} onClick={() => handleEdit(enq, true)} className="bg-white p-4 rounded-xl shadow-sm border border-[#E5E7EB] cursor-pointer hover:border-blue-300">
               <div className="flex justify-between items-start mb-3">
                 <div>
@@ -545,7 +687,21 @@ export default function SalesEnquiry() {
                     {new Date(enq.enquiry_time || enq.created_at).toLocaleDateString('en-GB')} {new Date(enq.enquiry_time || enq.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
-                <div>{getStatusPill(enq.status)}</div>
+                <div className="flex items-center gap-2">
+                  {enq.status?.toLowerCase() !== 'converted' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate('/bookings', { state: { prefilledEnquiry: enq } });
+                      }}
+                      className="p-1.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg hover:bg-emerald-100 transition-colors shadow-sm"
+                      title="Convert to Booking"
+                    >
+                      <CalendarCheck size={14} />
+                    </button>
+                  )}
+                  {getStatusPill(enq.status)}
+                </div>
               </div>
               <div className="mb-3">
                 <p className="text-base font-bold text-[#0D1537] leading-tight">{enq.guest_name}</p>
@@ -554,14 +710,18 @@ export default function SalesEnquiry() {
                   <span className="text-[12px] font-medium">{enq.mobile_number}</span>
                 </div>
               </div>
-              <div className="flex justify-between items-end border-t border-[#E5E7EB] pt-3">
+              <div className="grid grid-cols-3 gap-2 border-t border-[#E5E7EB] pt-3">
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 tracking-wider">Site</p>
-                  <p className="text-[13px] font-semibold text-gray-900">{enq.site?.site_name || '--'}</p>
+                  <p className="text-[13px] font-semibold text-gray-900 truncate">{enq.site?.site_name || '--'}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] font-bold text-gray-400 tracking-wider">Entry By</p>
+                  <p className="text-[13px] font-semibold text-gray-900 truncate">{enq.employee?.name || '--'}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-bold text-gray-400 tracking-wider">Room Type</p>
-                  <p className="text-[13px] font-semibold text-gray-900">{enq.room_type_requested || '--'}</p>
+                  <p className="text-[13px] font-semibold text-gray-900 truncate">{enq.room_type_requested || '--'}</p>
                 </div>
               </div>
             </div>
@@ -569,8 +729,8 @@ export default function SalesEnquiry() {
         </div>
 
         {/* Floating Add Button for Mobile */}
-        <button 
-          onClick={() => { setForm({ guest_name: '', mobile_number: '', place: '', site_id: '', room_type_requested: 'Room', check_in_date: '', check_out_date: '', no_of_days: '', enquiry_source: 'walk_in', remarks: '', status: 'new', time: '' }); setEditId(null); setIsViewOnly(false); setViewMode('create'); }}
+        <button
+          onClick={() => setSearchParams({ mode: 'create' })}
           className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-[#2563EB] rounded-2xl shadow-lg shadow-blue-500/30 flex items-center justify-center text-white z-50 hover:bg-blue-700 active:scale-95 transition-all"
         >
           <Plus size={28} strokeWidth={2.5} />

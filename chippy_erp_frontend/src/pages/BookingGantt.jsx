@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, CalendarDays, RefreshCw,
   User, Phone, BedDouble, LogIn, LogOut, CheckCircle, XCircle, AlertTriangle, X, Maximize2
@@ -168,6 +169,7 @@ const ConfirmDialog = ({ open, title, message, onConfirm, onCancel, confirmLabel
 
 // ─── Main Gantt Component ──────────────────────────────────────────────────────
 export default function BookingGantt({ sites = [], onCreateBooking }) {
+  const navigate    = useNavigate();
   const today       = toDateStr(new Date());
   const [fromDate,  setFromDate]  = useState(addDays(today, -3));
   const [days,      setDays]      = useState(28);
@@ -475,7 +477,7 @@ export default function BookingGantt({ sites = [], onCreateBooking }) {
             booking={popover.booking}
             style={{ position: 'fixed', top, left }}
             onClose={() => setPopover(null)}
-            onCheckIn={b => askConfirm('checked_in', b)}
+            onCheckIn={b => navigate(`/check-in/${b.id}`)}
             onCheckOut={b => askConfirm('checked_out', b)}
             onCancel={b => askConfirm('cancelled', b)}
           />

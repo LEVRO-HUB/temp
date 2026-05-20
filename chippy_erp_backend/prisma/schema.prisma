@@ -16,12 +16,6 @@ enum RoomStatus {
   maintenance
 }
 
-enum RoomType {
-  Room
-  OneBHK
-  TwoBHK
-  ThreeBHK
-}
 
 enum SiteType {
   hotel
@@ -192,8 +186,8 @@ model Employee {
   dept_id    Int?
   created_by Int?
 
-  role_master DepartmentMaster? @relation(fields: [dept_id],  references: [id])
-  dept_master RoleMaster?       @relation(fields: [role_id],  references: [id])
+  role_master RoleMaster?       @relation(fields: [role_id],  references: [id])
+  dept_master DepartmentMaster? @relation(fields: [dept_id],  references: [id])
 
   enquiries       Enquiry[]
   bookings        Booking[]
@@ -240,15 +234,14 @@ model Site {
 }
 
 model Room {
-  id              Int        @id @default(autoincrement())
-  site_id         Int
-  room_number     String
-  room_type       RoomType
-  status          RoomStatus @default(available)
-  rate_per_night  Decimal?   @db.Decimal(10, 2)  // ✅ NEW — auto-calculate booking total
-  is_active       Boolean    @default(true)
-  created_at      DateTime   @default(now())
-  updated_at      DateTime   @updatedAt
+  id          Int        @id @default(autoincrement())
+  site_id     Int
+  room_number String     // CR-01, A-203
+  room_type   String
+  status      RoomStatus @default(available)
+  is_active   Boolean    @default(true)
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
 
   site     Site      @relation(fields: [site_id], references: [id])
   bookings Booking[]
@@ -258,23 +251,23 @@ model Room {
 }
 
 model Enquiry {
-  id                  Int           @id @default(autoincrement())
-  enquiry_time        DateTime      @default(now())
-  guest_name          String
-  mobile_number       String
-  place               String?
-  site_id             Int
-  room_type_requested RoomType
-  check_in_date       DateTime
-  check_out_date      DateTime?
-  no_of_days          Int?
-  enquiry_source      EnquirySource
-  status              EnquiryStatus @default(new)
-  remarks             String?
-  is_deleted          Boolean       @default(false)
-  created_by          Int
-  created_at          DateTime      @default(now())
-  updated_at          DateTime      @updatedAt
+  id                Int           @id @default(autoincrement())
+  enquiry_time      DateTime      @default(now())
+  guest_name        String
+  mobile_number     String
+  place             String?
+  site_id           Int
+  room_type_requested String
+  check_in_date     DateTime
+  check_out_date    DateTime?
+  no_of_days        Int?
+  enquiry_source    EnquirySource
+  status            EnquiryStatus @default(new)
+  remarks           String?
+  is_deleted        Boolean       @default(false)
+  created_by        Int
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
 
   employee Employee @relation(fields: [created_by], references: [id])
   site     Site     @relation(fields: [site_id],    references: [id])
@@ -302,8 +295,11 @@ model Booking {
   booking_date    DateTime      @default(now())
   rate_per_night  Decimal?      @db.Decimal(10, 2)  // ✅ NEW — snapshot of rate at time of booking
   total_amount    Decimal       @db.Decimal(12, 2)
-  actual_check_in  DateTime?   // ✅ NEW — when they actually arrived
-  actual_check_out DateTime?   // ✅ NEW — when they actually left
+  actual_check_in  DateTime?   // ✅ Phase 1 — when they actually arrived
+  actual_check_out DateTime?   // ✅ Phase 1 — when they actually left
+  id_type         String?      // Phase 2B — Aadhaar / Passport / Driving Licence / Other
+  id_number       String?      // Phase 2B — ID document number
+  arrival_time    DateTime?    // Phase 2B — actual arrival time (can differ from check_in_date)
   remarks         String?
   is_deleted      Boolean       @default(false)
   created_by      Int

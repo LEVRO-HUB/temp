@@ -13,7 +13,8 @@ export const getAllEmployees = async (req, res) => {
 
     const mapped = employees.map(emp => ({
       ...emp,
-      role: (emp.role_master?.name || 'Employee').toLowerCase()
+      role: emp.role_master || { name: 'Employee', icon: 'User' },
+      department: emp.dept_master
     }));
 
     res.json(mapped);
@@ -37,7 +38,8 @@ export const getEmployeeById = async (req, res) => {
 
     const mapped = {
       ...employee,
-      role: (employee.role_master?.name || 'Employee').toLowerCase()
+      role: employee.role_master || { name: 'Employee', icon: 'User' },
+      department: employee.dept_master
     };
 
     res.json(mapped);
@@ -74,6 +76,7 @@ export const createEmployee = async (req, res) => {
       }
     });
 
+    req.io.emit('employee_data_changed', { action: 'create', id: newEmployee.id });
     res.status(201).json({ message: 'Employee created successfully', id: newEmployee.id });
   } catch (error) {
     console.error(error);
@@ -97,6 +100,7 @@ export const updateEmployee = async (req, res) => {
         login_enabled: login_enabled === undefined ? undefined : (login_enabled === true || login_enabled === 'true')
       }
     });
+    req.io.emit('employee_data_changed', { action: 'update', id: updated.id });
     res.json({ message: 'Employee updated successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update employee' });
@@ -118,6 +122,7 @@ export const toggleLoginAccess = async (req, res) => {
       data: { login_enabled }
     });
 
+    req.io.emit('employee_data_changed', { action: 'toggle_login', id: parseInt(id) });
     res.json({ message: `Login access updated to ${login_enabled}` });
   } catch (error) {
     res.status(500).json({ error: 'Failed to toggle login access' });
@@ -238,6 +243,7 @@ export const deleteEmployee = async (req, res) => {
           login_enabled: false
         }
       });
+      req.io.emit('employee_data_changed', { action: 'soft_delete', id: employeeId });
       return res.json({ message: "Employee has historical transactions. Account has been deactivated and login disabled to preserve records." });
     }
 
@@ -246,6 +252,7 @@ export const deleteEmployee = async (req, res) => {
       where: { id: employeeId }
     });
 
+    req.io.emit('employee_data_changed', { action: 'delete', id: employeeId });
     res.json({ message: "Employee deleted successfully" });
   } catch (error) {
     console.error(error);
