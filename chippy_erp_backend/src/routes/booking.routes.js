@@ -9,6 +9,7 @@ import {
   updateBooking,
   updateBookingStatus,
   checkInBooking,
+  checkOutBooking,
   deleteBooking,
 } from '../controllers/booking.controller.js';
 
@@ -23,6 +24,7 @@ router.post('/',                      createBooking);
 router.put('/:id',                    updateBooking);
 router.patch('/:id/status',           updateBookingStatus); // Phase 1 — generic status transitions
 router.patch('/:id/checkin',          checkInBooking);      // Phase 2B-P1 — dedicated check-in
+router.patch('/:id/checkout',         checkOutBooking);     // Phase 2B-P2 — dedicated check-out
 router.delete('/:id',                 deleteBooking);       // soft delete
 
 export default router;

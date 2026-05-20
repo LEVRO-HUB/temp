@@ -429,6 +429,54 @@ export const deleteBooking = async (req, res) => {
   }
 };
 // ─────────────────────────────────────────────
+// DEDICATED CHECK-OUT  (Phase 2B-Part2)
+// PATCH /api/bookings/:id/checkout
+// body: { remarks? }
+// ─────────────────────────────────────────────
+export const checkOutBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { remarks } = req.body;
+
+    const existing = await prisma.booking.findUnique({
+      where:   { id: parseInt(id) },
+      include: { payments: true },
+    });
+    if (!existing || existing.is_deleted) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+    if (existing.status !== 'checked_in') {
+      return res.status(400).json({
+        error: `Cannot check out. Current status is "${existing.status}". Only checked-in bookings can be checked out.`,
+      });
+    }
+
+    const updateData = {
+      status:           'checked_out',
+      actual_check_out: new Date(),
+    };
+    if (remarks !== undefined) updateData.remarks = remarks || existing.remarks;
+
+    const updated = await prisma.booking.update({
+      where:   { id: parseInt(id) },
+      data:    updateData,
+      include: { ...bookingInclude, payments: true },
+    });
+
+    // Free the room
+    await prisma.room.update({
+      where: { id: existing.room_id },
+      data:  { status: 'available' },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('checkOutBooking error:', error);
+    res.status(500).json({ error: 'Failed to check out booking' });
+  }
+};
+
+// ─────────────────────────────────────────────
 // DEDICATED CHECK-IN  (Phase 2B-Part1)
 // PATCH /api/bookings/:id/checkin
 // body: { arrival_time?, id_type?, id_number?, guest_count?, remarks? }
