@@ -4,6 +4,7 @@ import { LayoutDashboard, Users, CreditCard, Box, Map, Search, Bell, LogOut, Che
 import { jwtDecode } from 'jwt-decode';
 import API_BASE_URL from '../config';
 import logo from '../assets/image-removebg-preview.png';
+import { usePermissions } from '../hooks/usePermissions.js';
 
 export default function DashboardLayout() {
   const location = useLocation();
@@ -12,44 +13,21 @@ export default function DashboardLayout() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const [permissions, setPermissions] = useState([]);
-  const [loadingPerms, setLoadingPerms] = useState(true);
+  // Use the shared PermissionContext instead of fetching separately
+  const { permissions, loading: loadingPerms } = usePermissions();
 
   useEffect(() => {
-    const fetchUserPermissions = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      try {
-        const decoded = jwtDecode(token);
-        console.log('Decoded Token User:', decoded);
-        setUser({
-          id: decoded.id,
-          name: decoded.name || 'Admin User',
-          role: decoded.role || 'Admin',
-          roleId: decoded.roleId
-        });
-
-        // Fetch permissions for this role only if roleId exists
-        if (decoded.roleId) {
-          const response = await fetch(`${API_BASE_URL}/api/permissions/${decoded.roleId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const perms = await response.json();
-          console.log('Fetched Permissions:', perms);
-          setPermissions(Array.isArray(perms) ? perms : []);
-        } else {
-          console.warn('No roleId found in token. Please logout and login again.');
-          setPermissions([]);
-        }
-      } catch (e) {
-        console.error('Error fetching permissions', e);
-      } finally {
-        setLoadingPerms(false);
-      }
-    };
-
-    fetchUserPermissions();
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const decoded = jwtDecode(token);
+      setUser({
+        id:     decoded.id,
+        name:   decoded.name   || 'Admin User',
+        role:   decoded.role   || 'Admin',
+        roleId: decoded.roleId,
+      });
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -64,10 +42,11 @@ export default function DashboardLayout() {
     };
   }, []);
 
+  const { can } = usePermissions();
   const hasAccess = (moduleKey) => {
     if (user.role?.toLowerCase() === 'developer') return true;
-    const hasPerm = permissions.find(p => p.module?.module_key === moduleKey)?.can_view || false;
-    return hasPerm;
+    return can(moduleKey, 'view');
+  };
   };
 
   useEffect(() => {
@@ -86,8 +65,8 @@ export default function DashboardLayout() {
       items: [
         { name: 'Sales Enquiries', path: '/enquiries', icon: Users, key: 'enquiries' },
         { name: 'Bookings & Sales', path: '/bookings', icon: Box, key: 'bookings' },
-        { name: 'Booking Calendar', path: '/booking-calendar', icon: CalendarDays, key: 'bookings' },
-        { name: 'Booking Reports', path: '/booking-reports', icon: BarChart3, key: 'bookings' },
+        { name: 'Booking Calendar', path: '/booking-calendar', icon: CalendarDays, key: 'booking_calendar' },
+        { name: 'Booking Reports', path: '/booking-reports', icon: BarChart3, key: 'booking_reports' },
       ]
     },
     {

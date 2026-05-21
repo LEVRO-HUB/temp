@@ -85,7 +85,7 @@ export const getBookingReport = async (req, res) => {
     const fromDate = req.query.from ? new Date(req.query.from) : defaultFrom;
     const toDate = req.query.to ? new Date(req.query.to) : defaultTo;
     fromDate.setHours(0, 0, 0, 0);
-    toDate.setHours(0, 0, 0, 0);
+    toDate.setHours(23, 59, 59, 999); // end of day — fixes timezone mismatch with Supabase UTC timestamps
 
     if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
       return res.status(400).json({ error: 'Invalid from/to date' });
@@ -94,8 +94,7 @@ export const getBookingReport = async (req, res) => {
       return res.status(400).json({ error: 'to must be on or after from' });
     }
 
-    const toExclusive = new Date(toDate);
-    toExclusive.setDate(toExclusive.getDate() + 1);
+    const toExclusive = new Date(toDate.getTime() + 1); // 1ms past end-of-day
     const days = Math.max(1, Math.ceil((toExclusive - fromDate) / 86400000));
     const siteId = req.query.site_id ? parseInt(req.query.site_id) : null;
 
