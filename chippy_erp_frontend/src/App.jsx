@@ -18,7 +18,9 @@ import CheckIn from './pages/CheckIn.jsx';
 import CheckOut from './pages/CheckOut.jsx';
 import BookingReports from './pages/BookingReports.jsx';
 import { PermissionProvider } from './contexts/PermissionContext.jsx';
-import ProtectedRoute from './components/ProtectedRoute.jsx';
+
+// RBAC route guards are disabled — enable when team is ready
+// import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 const AuthGuard = ({ children }) => {
   const navigate = useNavigate();
@@ -29,9 +31,6 @@ const AuthGuard = ({ children }) => {
   return children;
 };
 
-// Helper so each route self-documents its required module key
-const P = ({ k, children }) => <ProtectedRoute moduleKey={k}>{children}</ProtectedRoute>;
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -41,31 +40,30 @@ export default function App() {
 
           <Route path="/" element={<AuthGuard><DashboardLayout /></AuthGuard>}>
             <Route index element={<Navigate to="/dashboard" replace />} />
-
-            <Route path="dashboard"        element={<P k="dashboard">        <Dashboard />             </P>} />
-            <Route path="sites"            element={<P k="zones">             <ZoneSiteManagement />    </P>} />
-            <Route path="rooms"            element={<P k="rooms">             <RoomManagement />        </P>} />
-            <Route path="enquiries"        element={<P k="enquiries">         <SalesEnquiry />          </P>} />
-            <Route path="bookings"         element={<P k="bookings">          <SalesBooking />          </P>} />
-            <Route path="booking-calendar" element={<P k="booking_calendar">  <GanttPage />             </P>} />
-            <Route path="booking-reports"  element={<P k="booking_reports">   <BookingReports />        </P>} />
-            <Route path="check-in/:bookingId"  element={<P k="bookings">      <CheckIn />               </P>} />
-            <Route path="check-out/:bookingId" element={<P k="bookings">      <CheckOut />              </P>} />
-            <Route path="payments"         element={<P k="payments">          <PaymentModule />         </P>} />
+            <Route path="dashboard"              element={<Dashboard />} />
+            <Route path="sites"                  element={<ZoneSiteManagement />} />
+            <Route path="rooms"                  element={<RoomManagement />} />
+            <Route path="enquiries"              element={<SalesEnquiry />} />
+            <Route path="bookings"               element={<SalesBooking />} />
+            <Route path="booking-calendar"       element={<GanttPage />} />
+            <Route path="booking-reports"        element={<BookingReports />} />
+            <Route path="check-in/:bookingId"    element={<CheckIn />} />
+            <Route path="check-out/:bookingId"   element={<CheckOut />} />
+            <Route path="payments"               element={<PaymentModule />} />
 
             <Route path="purchase-orders">
               <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard"  element={<P k="pos"><PurchaseOrderManagement tab="dashboard" /></P>} />
-              <Route path="list"       element={<P k="pos"><PurchaseOrderManagement tab="po-list"   /></P>} />
-              <Route path="approvals"  element={<P k="pos"><PurchaseOrderManagement tab="approval"  /></P>} />
-              <Route path="vendors"    element={<P k="pos"><PurchaseOrderManagement tab="vendors"   /></P>} />
-              <Route path="audit"      element={<P k="pos"><PurchaseOrderManagement tab="budget"    /></P>} />
+              <Route path="dashboard"  element={<PurchaseOrderManagement tab="dashboard" />} />
+              <Route path="list"       element={<PurchaseOrderManagement tab="po-list" />} />
+              <Route path="approvals"  element={<PurchaseOrderManagement tab="approval" />} />
+              <Route path="vendors"    element={<PurchaseOrderManagement tab="vendors" />} />
+              <Route path="audit"      element={<PurchaseOrderManagement tab="budget" />} />
             </Route>
 
-            <Route path="employees"              element={<P k="employees"><EmployeeManagement /></P>} />
-            <Route path="rbac"                   element={<P k="rbac">     <ScreenRights />      </P>} />
-            <Route path="rbac/permissions/:roleId" element={<P k="rbac">   <ModuleRights />      </P>} />
-            <Route path="profile"                element={<P k="profile">  <ProfileSettings />   </P>} />
+            <Route path="employees"                  element={<EmployeeManagement />} />
+            <Route path="rbac"                       element={<ScreenRights />} />
+            <Route path="rbac/permissions/:roleId"   element={<ModuleRights />} />
+            <Route path="profile"                    element={<ProfileSettings />} />
           </Route>
         </Routes>
       </PermissionProvider>
