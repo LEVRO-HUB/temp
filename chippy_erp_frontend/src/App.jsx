@@ -16,6 +16,7 @@ import ModuleRights from './pages/ModuleRights.jsx';
 import GanttPage from './pages/GanttPage.jsx';
 import CheckIn from './pages/CheckIn.jsx';
 import CheckOut from './pages/CheckOut.jsx';
+import BookingReports from './pages/BookingReports.jsx';
 
 // Simple mockup pages for now
 const ErrorPage = () => <div className="text-center p-12 text-gray-500">Feature disabled or incomplete.</div>;
@@ -43,6 +44,7 @@ export default function App() {
            <Route path="enquiries" element={<SalesEnquiry />} />
            <Route path="bookings" element={<SalesBooking />} />
            <Route path="booking-calendar" element={<GanttPage />} />
+           <Route path="booking-reports" element={<BookingReports />} />
            <Route path="check-in/:bookingId" element={<CheckIn />} />
            <Route path="check-out/:bookingId" element={<CheckOut />} />
            <Route path="payments" element={<PaymentModule />} />

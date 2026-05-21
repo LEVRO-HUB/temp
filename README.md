@@ -287,7 +287,7 @@ File: `migration_phase2b_part1.sql` (in repo root)
 
 ---
 
-## Phase 2B Part 2 — Dedicated Check-Out Screen
+## Phase 2C Part 1 — Dedicated Check-Out Screen + Integration Fixes
 
 ### New API endpoint
 
@@ -308,13 +308,32 @@ File: `migration_phase2b_part1.sql` (in repo root)
 - **Payment history** — collapsible list of all transactions with method badges (Cash, UPI, Bank, Card, Cheque, RTGS)
 - **Quick stats strip** — 4 cards: Total Charged / Total Paid / Outstanding / Nights Stayed
 - **Outstanding balance warning** — red banner if unpaid, green confirmation if fully settled
+- **Record Payment shortcut** — opens Payments with booking, amount, and checkout note pre-filled
 - **Remarks field** — final notes about the stay
 - **Confirm Check-Out** — submits PATCH /checkout, success screen with outstanding reminder if any
 - Entry points: Check Out button in booking list + Gantt popup
 
-### Deployment steps (Phase 2B Part 2)
+### Booking reports / export
 
-No DB migration needed — uses existing schema.
+- Date-range booking report at `/booking-reports`
+- Occupancy summary: active rooms, occupied room nights, total room nights, occupancy rate
+- Revenue by site for the selected range
+- Bookings by status summary
+- Booking detail table with CSV export
+- Printable report summary
+
+API:
+```
+GET /api/bookings/report?from=YYYY-MM-DD&to=YYYY-MM-DD&site_id=optional
+```
+
+### Deployment steps (Phase 2C Part 1)
+
+Run this DB migration before deploying backend:
+
+```
+migration_phase2c_part1.sql
+```
 
 Copy:
 ```
@@ -328,4 +347,7 @@ SalesBooking.jsx    — Check Out button navigates to /check-out/:id
 BookingGantt.jsx    — Gantt popup Check Out navigates to /check-out/:id
 booking.controller.js — checkOutBooking added
 booking.routes.js   — PATCH /:id/checkout registered
+payment.controller.js — payment enum normalization for checkout balances
+room.controller.js — room rate create/update support
+schema.prisma — Room.rate_per_night added
 ```

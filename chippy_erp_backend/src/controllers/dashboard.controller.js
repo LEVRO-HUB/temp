@@ -4,6 +4,11 @@ export const getDashboardMetrics = async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
 
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 6);
@@ -28,7 +33,12 @@ export const getDashboardMetrics = async (req, res) => {
       siteRevenuesData,
       roomStatsData,
       trendBookingsRaw,
-      trendEnquiriesRaw
+      trendEnquiriesRaw,
+      todayArrivalsData,
+      todayDeparturesData,
+      activeRoomCount,
+      occupiedBookingsTodayData,
+      monthlyRevenueAggr
     ] = await Promise.all([
       prisma.enquiry.count({ where: { created_at: { gte: today } } }),
       prisma.enquiry.count({ where: { created_at: { gte: yesterday, lt: today } } }),
@@ -41,14 +51,63 @@ export const getDashboardMetrics = async (req, res) => {
       prisma.enquiry.findMany({ orderBy: { id: 'desc' }, take: 8, include: { site: true } }),
       prisma.booking.findMany({ orderBy: { id: 'desc' }, take: 8, include: { site: true } }),
       prisma.payment.findMany({ orderBy: { id: 'desc' }, take: 7 }),
-      prisma.site.findMany({ include: { bookings: true } }),
+      prisma.site.findMany({
+        include: {
+          bookings: {
+            where: {
+              is_deleted: false,
+              status: { not: 'cancelled' },
+              booking_date: { gte: monthStart, lt: nextMonthStart },
+            },
+          },
+        },
+      }),
       prisma.room.groupBy({ by: ['status'], _count: { _all: true } }),
       prisma.booking.findMany({ where: { booking_date: { gte: sevenDaysAgo } } }),
-      prisma.enquiry.findMany({ where: { created_at: { gte: sevenDaysAgo } } })
+      prisma.enquiry.findMany({ where: { created_at: { gte: sevenDaysAgo } } }),
+      prisma.booking.findMany({
+        where: {
+          is_deleted: false,
+          status: { in: ['confirmed', 'checked_in'] },
+          check_in_date: { gte: today, lt: tomorrow },
+        },
+        include: { site: true, room: true },
+        orderBy: { check_in_date: 'asc' },
+        take: 8,
+      }),
+      prisma.booking.findMany({
+        where: {
+          is_deleted: false,
+          status: 'checked_in',
+          check_out_date: { gte: today, lt: tomorrow },
+        },
+        include: { site: true, room: true },
+        orderBy: { check_out_date: 'asc' },
+        take: 8,
+      }),
+      prisma.room.count({ where: { is_active: true } }),
+      prisma.booking.findMany({
+        where: {
+          is_deleted: false,
+          status: { in: ['confirmed', 'checked_in'] },
+          check_in_date: { lt: tomorrow },
+          check_out_date: { gt: today },
+        },
+        distinct: ['room_id'],
+        select: { room_id: true },
+      }),
+      prisma.booking.aggregate({
+        _sum: { total_amount: true },
+        where: {
+          is_deleted: false,
+          status: { not: 'cancelled' },
+          booking_date: { gte: monthStart, lt: nextMonthStart },
+        },
+      })
     ]);
 
-    const totalRevenue = totalRevenueAggr._sum.total_amount || 0;
-    const yesterdayRevenue = yesterdayRevenueAggr._sum.total_amount || 0;
+    const totalRevenue = Number(totalRevenueAggr._sum.total_amount || 0);
+    const yesterdayRevenue = Number(yesterdayRevenueAggr._sum.total_amount || 0);
 
     const calcChange = (curr, prev) => {
       if (prev === 0) return curr > 0 ? 100 : 0;
@@ -64,15 +123,28 @@ export const getDashboardMetrics = async (req, res) => {
     const bookingChange = calcChange(todayBookingsCount, yesterdayIncrementalBookings);
 
     const todayRevenueAggr = await prisma.booking.aggregate({ _sum: { total_amount: true }, where: { created_at: { gte: today } } });
-    const todayRevenue = todayRevenueAggr._sum.total_amount || 0;
+    const todayRevenue = Number(todayRevenueAggr._sum.total_amount || 0);
     const yesterdayIncrementalRevenueAggr = await prisma.booking.aggregate({ _sum: { total_amount: true }, where: { created_at: { gte: yesterday, lt: today } } });
-    const yesterdayIncrementalRevenue = yesterdayIncrementalRevenueAggr._sum.total_amount || 0;
+    const yesterdayIncrementalRevenue = Number(yesterdayIncrementalRevenueAggr._sum.total_amount || 0);
     const revenueChange = calcChange(todayRevenue, yesterdayIncrementalRevenue);
 
     const bookingConversionRate = totalEnquiriesCount === 0 ? 0 : parseFloat(((convertedEnquiriesCount / totalEnquiriesCount) * 100).toFixed(2));
     
     const formatTime = (d) => new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const formatDate = (d) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const formatBooking = (b) => ({
+      booking_id: b.id,
+      id: `BKG-${10000 + b.id}`,
+      guest_name: b.guest_name,
+      mobile: b.mobile_number,
+      site: b.site?.site_name || 'N/A',
+      room: b.room?.room_number || 'N/A',
+      date: formatDate(b.check_in_date),
+      check_in: formatDate(b.check_in_date),
+      check_out: formatDate(b.check_out_date),
+      amount: Number(b.total_amount || 0),
+      status: b.status,
+    });
 
     const recentEnquiries = recentEnquiriesData.map(e => ({
       time: formatTime(e.created_at),
@@ -89,20 +161,20 @@ export const getDashboardMetrics = async (req, res) => {
       guest_name: b.guest_name,
       site: b.site?.site_name || 'N/A',
       check_in: formatDate(b.check_in_date),
-      amount: b.total_amount
+      amount: Number(b.total_amount || 0)
     }));
 
     const recentPayments = recentPaymentsData.map(p => ({
       payment_no: p.payment_no,
       booking_id: `BKG-${10000 + p.booking_id}`,
       date: formatDate(p.payment_date),
-      amount: p.payment_amt_in_base,
+      amount: Number(p.payment_amt_in_base || 0),
       status: 'Success'
     }));
 
     const siteRevenues = siteRevenuesData.map(s => ({
       name: s.site_name,
-      revenue: s.bookings.reduce((sum, b) => sum + b.total_amount, 0)
+      revenue: s.bookings.reduce((sum, b) => sum + Number(b.total_amount || 0), 0)
     })).filter(s => s.revenue > 0).sort((a,b) => b.revenue - a.revenue);
 
     let roomStats = { available: 0, occupied: 0, cleaning: 0, maintenance: 0, total: 0 };
@@ -129,10 +201,22 @@ export const getDashboardMetrics = async (req, res) => {
         trendEnquiries.push({ date: dStr, enquiries: enqCount, bookings: bkgCount });
     }
 
+    const occupiedRoomCount = occupiedBookingsTodayData.length;
+    const occupancyRate = activeRoomCount === 0 ? 0 : parseFloat(((occupiedRoomCount / activeRoomCount) * 100).toFixed(1));
+    const monthlyRevenue = Number(monthlyRevenueAggr._sum.total_amount || 0);
+
     res.json({
       dailyEnquiriesCount,
       totalBookingsCount,
-      totalRevenue,
+      totalRevenue: Number(totalRevenue),
+      monthlyRevenue,
+      todayArrivalsCount: todayArrivalsData.length,
+      todayDeparturesCount: todayDeparturesData.length,
+      todayArrivals: todayArrivalsData.map(formatBooking),
+      todayDepartures: todayDeparturesData.map(formatBooking),
+      occupancyRate,
+      occupiedRoomCount,
+      activeRoomCount,
       bookingConversionRate,
       enquiryChange,
       bookingChange,

@@ -22,7 +22,8 @@ export default function RoomManagement() {
     site_id: '',
     room_number: '',
     room_type: 'Standard',
-    status: 'available'
+    status: 'available',
+    rate_per_night: ''
   });
   const [submitError, setSubmitError] = useState('');
 
@@ -48,7 +49,7 @@ export default function RoomManagement() {
       let fetchedBookings = [];
       if (resBookings.ok) {
          fetchedBookings = await resBookings.json();
-         setBookings(Array.isArray(fetchedBookings) ? fetchedBookings : []);
+         setBookings(Array.isArray(fetchedBookings) ? fetchedBookings : fetchedBookings.data || []);
       }
       if (resRooms.ok) {
          setRooms(await resRooms.json());
@@ -68,7 +69,8 @@ export default function RoomManagement() {
                  site_id: location.state.prefilledSiteId,
                  room_number: '',
                  room_type: defaultRoomType,
-                 status: 'available'
+                 status: 'available',
+                 rate_per_night: ''
                });
                setIsModalOpen(true);
             }
@@ -89,7 +91,8 @@ export default function RoomManagement() {
       site_id: defaultSiteId,
       room_number: '',
       room_type: defaultRoomType,
-      status: 'available'
+      status: 'available',
+      rate_per_night: ''
     });
     setSubmitError('');
     setIsModalOpen(true);
@@ -114,7 +117,8 @@ export default function RoomManagement() {
           site_id: parseInt(newRoomData.site_id),
           room_number: newRoomData.room_number,
           room_type: newRoomData.room_type,
-          status: newRoomData.status
+          status: newRoomData.status,
+          rate_per_night: newRoomData.rate_per_night
         })
       });
       if (res.ok) {
@@ -341,6 +345,11 @@ export default function RoomManagement() {
                         </span>
                       </div>
                       <p className="text-[11px] text-gray-500 font-semibold mt-1 capitalize">{room.room_type.replace('_',' ')}</p>
+                      {room.rate_per_night && (
+                        <p className="text-[10px] text-gray-500 font-bold mt-1">
+                          Rs. {parseFloat(room.rate_per_night).toLocaleString('en-IN')}/night
+                        </p>
+                      )}
                     </div>
 
                     {overlappingBooking ? (
@@ -425,6 +434,18 @@ export default function RoomManagement() {
                   <option value="available">Available</option>
                   <option value="maintenance">Maintenance</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold mb-1 text-gray-800">Rate / Night (Rs.)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newRoomData.rate_per_night}
+                  onChange={e => setNewRoomData({...newRoomData, rate_per_night: e.target.value})}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[14px] font-medium outline-none focus:border-blue-500"
+                  placeholder="e.g. 2500"
+                />
               </div>
               <div className="flex justify-end gap-3 mt-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>

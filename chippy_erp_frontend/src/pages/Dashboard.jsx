@@ -1,24 +1,34 @@
 import React, { useEffect, useState } from "react";
-import { Users, Calendar, BarChart2, ArrowUp, ArrowDown, Link as LinkIcon, Eye } from "lucide-react";
+import { Users, Calendar, BarChart2, ArrowUp, ArrowDown, Link as LinkIcon, Eye, LogIn, LogOut, BedDouble, Percent } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Legend, PieChart, Pie, Cell } from "recharts";
 import { Link } from "react-router-dom";
 import { jwtDecode } from 'jwt-decode';
 import API_BASE_URL from '../config';
 
+const DEFAULT_METRICS = {
+  dailyEnquiriesCount: 0,
+  totalBookingsCount: 0,
+  totalRevenue: 0,
+  bookingConversionRate: 0,
+  trendEnquiries: [],
+  recentEnquiries: [],
+  recentBookings: [],
+  recentPayments: [],
+  todayArrivalsCount: 0,
+  todayDeparturesCount: 0,
+  todayArrivals: [],
+  todayDepartures: [],
+  occupancyRate: 0,
+  occupiedRoomCount: 0,
+  activeRoomCount: 0,
+  monthlyRevenue: 0,
+  roomStats: { available: 0, occupied: 0, cleaning: 0, maintenance: 0, total: 0 },
+  siteRevenues: []
+};
+
 export default function Dashboard() {
   const [userName, setUserName] = useState('User');
-  const [metrics, setMetrics] = useState({
-    dailyEnquiriesCount: 0,
-    totalBookingsCount: 0,
-    totalRevenue: 0,
-    bookingConversionRate: 0,
-    trendEnquiries: [],
-    recentEnquiries: [],
-    recentBookings: [],
-    recentPayments: [],
-    roomStats: { available: 0, occupied: 0, cleaning: 0, maintenance: 0, total: 0 },
-    siteRevenues: []
-  });
+  const [metrics, setMetrics] = useState(DEFAULT_METRICS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,7 +45,21 @@ export default function Dashboard() {
       const res = await fetch(`${API_BASE_URL}/api/dashboard`, {
         headers: { 'Authorization': 'Bearer ' + token }
       });
-      if (res.ok) setMetrics(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setMetrics({
+          ...DEFAULT_METRICS,
+          ...data,
+          roomStats: { ...DEFAULT_METRICS.roomStats, ...(data.roomStats || {}) },
+          trendEnquiries: data.trendEnquiries || [],
+          recentEnquiries: data.recentEnquiries || [],
+          recentBookings: data.recentBookings || [],
+          recentPayments: data.recentPayments || [],
+          todayArrivals: data.todayArrivals || [],
+          todayDepartures: data.todayDepartures || [],
+          siteRevenues: data.siteRevenues || [],
+        });
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -59,6 +83,64 @@ export default function Dashboard() {
     { title: "Gross Revenue", value: `₹ ${(metrics.totalRevenue/1000).toLocaleString('en-IN', {minimumFractionDigits:1})}k`, icon: <div className="text-[#10B981] font-bold text-lg">₹</div>, change: `${metrics.revenueChange >= 0 ? '+' : ''}${metrics.revenueChange}% vs yesterday`, trend: metrics.revenueChange >= 0 ? "up" : "down", bg: "bg-emerald-500" },
     { title: "Conversion Rate", value: `${metrics.bookingConversionRate}%`, icon: <PieChart size={20} className="text-[#F59E0B]"/>, change: "Current average", trend: "up", bg: "bg-amber-500" }
   ];
+
+  const formatINR = (amount) =>
+    `₹ ${Number(amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+
+  const bookingOpsCards = [
+    {
+      title: "Occupancy Rate",
+      value: `${metrics.occupancyRate || 0}%`,
+      detail: `${metrics.occupiedRoomCount || 0}/${metrics.activeRoomCount || 0} rooms occupied`,
+      icon: <Percent size={16} className="text-blue-600" />,
+      bg: "bg-blue-50",
+      border: "border-blue-100",
+    },
+    {
+      title: "Revenue This Month",
+      value: formatINR(metrics.monthlyRevenue),
+      detail: "Confirmed booking value",
+      icon: <div className="text-emerald-600 font-black text-sm">₹</div>,
+      bg: "bg-emerald-50",
+      border: "border-emerald-100",
+    },
+  ];
+
+  const BookingTodayList = ({ title, count = 0, items = [], empty, actionPath, icon }) => (
+    <div className="bg-white rounded-[10px] border border-[#E5E7EB] shadow-[0_2px_10px_rgb(0,0,0,0.02)] overflow-hidden">
+      <div className="p-3 px-4 border-b border-[#E5E7EB] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-[#2563EB]">{icon}</span>
+          <div>
+            <h2 className="text-[13px] font-bold text-gray-900">{title}</h2>
+            <p className="text-[11px] font-semibold text-gray-500">{count} booking{count === 1 ? '' : 's'} today</p>
+          </div>
+        </div>
+        <Link to="/bookings" className="text-[11px] font-bold text-[#2563EB] hover:text-blue-800">View All</Link>
+      </div>
+      <div className="p-3 space-y-2 min-h-[170px]">
+        {items.length === 0 ? (
+          <div className="h-[140px] flex items-center justify-center text-[12px] font-semibold text-gray-400">{empty}</div>
+        ) : items.map((b) => (
+          <div key={b.id} className="flex items-center gap-3 rounded-lg border border-[#F3F4F6] bg-[#F8FAFC] px-3 py-2">
+            <div className="w-9 h-9 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center">
+              <BedDouble size={14} className="text-gray-500" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-[12px] font-extrabold text-gray-900 truncate">{b.guest_name}</p>
+                <span className="text-[9px] font-bold text-gray-400">{b.id}</span>
+              </div>
+              <p className="text-[11px] font-semibold text-gray-500 truncate">{b.site} · Room {b.room}</p>
+            </div>
+            <Link to={`${actionPath}/${b.booking_id}`} className="px-2.5 py-1 rounded-md bg-white border border-[#E5E7EB] text-[10px] font-extrabold text-[#2563EB] hover:bg-blue-50">
+              Open
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   const ROOM_COLORS = ['#4ADE80', '#F87171', '#FBBF24', '#A78BFA'];
   const roomPieData = [
@@ -99,6 +181,42 @@ export default function Dashboard() {
                    <span className={`flex items-center gap-1 text-[10px] font-bold ${stat.trend === 'up' ? 'text-emerald-500' : 'text-red-500'}`}>
                       {stat.trend === 'up' ? <ArrowUp size={10} strokeWidth={3}/> : <ArrowDown size={10} strokeWidth={3}/>} {stat.change}
                    </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Booking Operations Today */}
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-3 shrink-0">
+            <div className="xl:col-span-1">
+              <BookingTodayList
+                title="Today's Arrivals"
+                count={metrics.todayArrivalsCount}
+                items={metrics.todayArrivals}
+                empty="No arrivals scheduled today."
+                actionPath="/check-in"
+                icon={<LogIn size={16} />}
+              />
+            </div>
+            <div className="xl:col-span-1">
+              <BookingTodayList
+                title="Today's Departures"
+                count={metrics.todayDeparturesCount}
+                items={metrics.todayDepartures}
+                empty="No departures scheduled today."
+                actionPath="/check-out"
+                icon={<LogOut size={16} />}
+              />
+            </div>
+            {bookingOpsCards.map((card) => (
+              <div key={card.title} className={`bg-white rounded-[10px] border border-[#E5E7EB] p-4 shadow-[0_2px_10px_rgb(0,0,0,0.02)] min-h-[225px] flex flex-col justify-between`}>
+                <div className={`w-10 h-10 rounded-xl ${card.bg} ${card.border} border flex items-center justify-center`}>
+                  {card.icon}
+                </div>
+                <div>
+                  <p className="text-[12px] font-bold text-gray-500 mb-1">{card.title}</p>
+                  <p className="text-2xl font-extrabold text-gray-900 tracking-tight">{card.value}</p>
+                  <p className="text-[11px] font-semibold text-gray-400 mt-1">{card.detail}</p>
                 </div>
               </div>
             ))}

@@ -3,6 +3,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import {
   getBookings,
   getBookingById,
+  getBookingReport,
   getAvailableRooms,
   getGanttData,
   createBooking,
@@ -19,6 +20,7 @@ router.use(authenticateToken);
 router.get('/',                       getBookings);
 router.get('/available-rooms',        getAvailableRooms);   // Phase 1 — availability check
 router.get('/gantt',                  getGanttData);        // Phase 2A — Gantt timeline
+router.get('/report',                 getBookingReport);
 router.get('/:id',                    getBookingById);      // Phase 2B — single booking
 router.post('/',                      createBooking);
 router.put('/:id',                    updateBooking);

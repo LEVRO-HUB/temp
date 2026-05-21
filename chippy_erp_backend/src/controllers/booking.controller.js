@@ -75,6 +75,163 @@ export const getBookings = async (req, res) => {
   }
 };
 
+// GET /api/bookings/report?from=YYYY-MM-DD&to=YYYY-MM-DD&site_id=X
+export const getBookingReport = async (req, res) => {
+  try {
+    const today = new Date();
+    const defaultFrom = new Date(today.getFullYear(), today.getMonth(), 1);
+    const defaultTo = today;
+
+    const fromDate = req.query.from ? new Date(req.query.from) : defaultFrom;
+    const toDate = req.query.to ? new Date(req.query.to) : defaultTo;
+    fromDate.setHours(0, 0, 0, 0);
+    toDate.setHours(0, 0, 0, 0);
+
+    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid from/to date' });
+    }
+    if (toDate < fromDate) {
+      return res.status(400).json({ error: 'to must be on or after from' });
+    }
+
+    const toExclusive = new Date(toDate);
+    toExclusive.setDate(toExclusive.getDate() + 1);
+    const days = Math.max(1, Math.ceil((toExclusive - fromDate) / 86400000));
+    const siteId = req.query.site_id ? parseInt(req.query.site_id) : null;
+
+    const bookingWhere = {
+      is_deleted: false,
+      check_in_date: { lt: toExclusive },
+      check_out_date: { gt: fromDate },
+      ...(siteId && { site_id: siteId }),
+    };
+    const [bookings, rooms, sites] = await Promise.all([
+      prisma.booking.findMany({
+        where: bookingWhere,
+        include: bookingInclude,
+        orderBy: [{ check_in_date: 'asc' }, { id: 'asc' }],
+      }),
+      prisma.room.findMany({
+        where: {
+          is_active: true,
+          ...(siteId && { site_id: siteId }),
+        },
+        select: { id: true, site_id: true },
+      }),
+      prisma.site.findMany({
+        where: {
+          is_active: true,
+          ...(siteId && { id: siteId }),
+        },
+        orderBy: { site_name: 'asc' },
+        select: { id: true, site_name: true },
+      }),
+    ]);
+    const roomCount = rooms.length;
+    const roomCountBySite = new Map();
+    for (const room of rooms) {
+      roomCountBySite.set(room.site_id, (roomCountBySite.get(room.site_id) || 0) + 1);
+    }
+
+    const statusCounts = {
+      confirmed: 0,
+      checked_in: 0,
+      checked_out: 0,
+      cancelled: 0,
+    };
+    const revenueBySiteMap = new Map();
+    const siteOccupancyMap = new Map();
+    for (const site of sites) {
+      revenueBySiteMap.set(site.id, { site_id: site.id, site: site.site_name, revenue: 0, bookings: 0 });
+      siteOccupancyMap.set(site.id, { site_id: site.id, site: site.site_name, occupiedRoomNights: 0 });
+    }
+
+    let totalRevenue = 0;
+    let occupiedRoomNights = 0;
+
+    for (const b of bookings) {
+      if (statusCounts[b.status] !== undefined) statusCounts[b.status] += 1;
+
+      if (b.status !== 'cancelled') {
+        const revenue = Number(b.total_amount || 0);
+        totalRevenue += revenue;
+        const siteSummary = revenueBySiteMap.get(b.site_id) || {
+          site_id: b.site_id,
+          site: b.site?.site_name || 'Unknown',
+          revenue: 0,
+          bookings: 0,
+        };
+        siteSummary.revenue += revenue;
+        siteSummary.bookings += 1;
+        revenueBySiteMap.set(b.site_id, siteSummary);
+
+        const start = new Date(Math.max(new Date(b.check_in_date).getTime(), fromDate.getTime()));
+        const end = new Date(Math.min(new Date(b.check_out_date).getTime(), toExclusive.getTime()));
+        const clippedNights = Math.max(0, Math.ceil((end - start) / 86400000));
+        occupiedRoomNights += clippedNights;
+
+        const occupancy = siteOccupancyMap.get(b.site_id) || {
+          site_id: b.site_id,
+          site: b.site?.site_name || 'Unknown',
+          occupiedRoomNights: 0,
+        };
+        occupancy.occupiedRoomNights += clippedNights;
+        siteOccupancyMap.set(b.site_id, occupancy);
+      }
+    }
+
+    const totalRoomNights = roomCount * days;
+    const occupancyRate = totalRoomNights === 0
+      ? 0
+      : parseFloat(((occupiedRoomNights / totalRoomNights) * 100).toFixed(1));
+
+    res.json({
+      from: fromDate.toISOString().split('T')[0],
+      to: toDate.toISOString().split('T')[0],
+      days,
+      summary: {
+        totalBookings: bookings.length,
+        totalRevenue,
+        activeRooms: roomCount,
+        totalRoomNights,
+        occupiedRoomNights,
+        occupancyRate,
+      },
+      statusCounts,
+      revenueBySite: Array.from(revenueBySiteMap.values())
+        .filter(s => s.revenue > 0 || s.bookings > 0)
+        .sort((a, b) => b.revenue - a.revenue),
+      occupancyBySite: Array.from(siteOccupancyMap.values())
+        .map(s => {
+          const siteRoomNights = (roomCountBySite.get(s.site_id) || 0) * days;
+          return {
+            ...s,
+            totalRoomNights: siteRoomNights,
+            occupancyRate: siteRoomNights === 0 ? 0 : parseFloat(((s.occupiedRoomNights / siteRoomNights) * 100).toFixed(1)),
+          };
+        })
+        .filter(s => s.totalRoomNights > 0 || s.occupiedRoomNights > 0),
+      bookings: bookings.map(b => ({
+        id: b.id,
+        booking_no: `BKG-${10000 + b.id}`,
+        guest_name: b.guest_name,
+        mobile_number: b.mobile_number,
+        site: b.site?.site_name || 'N/A',
+        room: b.room?.room_number || 'N/A',
+        room_type: b.room?.room_type || 'N/A',
+        check_in_date: b.check_in_date,
+        check_out_date: b.check_out_date,
+        total_nights: b.total_nights,
+        status: b.status,
+        total_amount: Number(b.total_amount || 0),
+      })),
+    });
+  } catch (error) {
+    console.error('getBookingReport error:', error);
+    res.status(500).json({ error: 'Failed to fetch booking report' });
+  }
+};
+
 // ─────────────────────────────────────────────
 // GET AVAILABLE ROOMS for a date range + site
 // GET /api/bookings/available-rooms?site_id=X&check_in=Y&check_out=Z
@@ -133,7 +290,7 @@ export const createBooking = async (req, res) => {
     const {
       enquiry_id, site_id, room_id, booking_type,
       guest_name, guest_count, mobile_number, place,
-      check_in_date, check_out_date, total_amount, remarks,
+      check_in_date, check_out_date, rate_per_night, total_amount, remarks,
     } = req.body;
 
     if (!room_id || !check_in_date || !check_out_date) {
@@ -161,10 +318,11 @@ export const createBooking = async (req, res) => {
 
     const total_nights = Math.ceil((outDate - inDate) / (1000 * 60 * 60 * 24));
 
-    // Auto-calculate total if rate is known and amount not manually overridden
-    const computedAmount = room.rate_per_night
-      ? parseFloat(room.rate_per_night) * total_nights
-      : parseFloat(total_amount) || 0;
+    const suppliedRate = rate_per_night !== undefined && rate_per_night !== '' ? parseFloat(rate_per_night) : null;
+    const snapshotRate = suppliedRate ?? (room.rate_per_night ? parseFloat(room.rate_per_night) : null);
+    const computedAmount = total_amount !== undefined && total_amount !== ''
+      ? parseFloat(total_amount)
+      : snapshotRate ? snapshotRate * total_nights : 0;
 
     const booking = await prisma.booking.create({
       data: {
@@ -180,7 +338,7 @@ export const createBooking = async (req, res) => {
         check_in_date:  inDate,
         check_out_date: outDate,
         total_nights,
-        rate_per_night: room.rate_per_night ?? null,
+        rate_per_night: snapshotRate,
         total_amount:   computedAmount,
         remarks:        remarks || null,
         created_by:     req.user.id,
@@ -237,7 +395,7 @@ export const updateBooking = async (req, res) => {
     const {
       enquiry_id, site_id, room_id, booking_type,
       guest_name, guest_count, mobile_number, place,
-      check_in_date, check_out_date, total_amount, remarks,
+      check_in_date, check_out_date, rate_per_night, total_amount, remarks,
     } = req.body;
 
     const existing = await prisma.booking.findUnique({ where: { id: parseInt(id) } });
@@ -264,13 +422,19 @@ export const updateBooking = async (req, res) => {
 
     const total_nights = Math.ceil((newCheckOut - newCheckIn) / (1000 * 60 * 60 * 24));
 
-    // Recalculate total if room changed
+    const suppliedRate = rate_per_night !== undefined && rate_per_night !== '' ? parseFloat(rate_per_night) : null;
+    let newRate = suppliedRate ?? (existing.rate_per_night ? parseFloat(existing.rate_per_night) : null);
+
+    // Recalculate rate/total if room changed
     let newTotal = total_amount ? parseFloat(total_amount) : parseFloat(existing.total_amount);
-    if (room_id && room_id !== existing.room_id) {
+    if (room_id && newRoomId !== existing.room_id) {
       const newRoom = await prisma.room.findUnique({ where: { id: newRoomId } });
       if (newRoom?.rate_per_night) {
-        newTotal = parseFloat(newRoom.rate_per_night) * total_nights;
+        newRate = suppliedRate ?? parseFloat(newRoom.rate_per_night);
+        if (!total_amount) newTotal = newRate * total_nights;
       }
+    } else if (!total_amount && suppliedRate) {
+      newTotal = suppliedRate * total_nights;
     }
 
     const booking = await prisma.booking.update({
@@ -288,6 +452,7 @@ export const updateBooking = async (req, res) => {
         check_in_date:  newCheckIn,
         check_out_date: newCheckOut,
         total_nights,
+        rate_per_night: newRate,
         total_amount: newTotal,
       },
       include: bookingInclude,
@@ -457,16 +622,19 @@ export const checkOutBooking = async (req, res) => {
     };
     if (remarks !== undefined) updateData.remarks = remarks || existing.remarks;
 
-    const updated = await prisma.booking.update({
-      where:   { id: parseInt(id) },
-      data:    updateData,
-      include: { ...bookingInclude, payments: true },
-    });
+    const updated = await prisma.$transaction(async (tx) => {
+      const booking = await tx.booking.update({
+        where:   { id: parseInt(id) },
+        data:    updateData,
+        include: { ...bookingInclude, payments: true },
+      });
 
-    // Free the room
-    await prisma.room.update({
-      where: { id: existing.room_id },
-      data:  { status: 'available' },
+      await tx.room.update({
+        where: { id: existing.room_id },
+        data:  { status: 'available' },
+      });
+
+      return booking;
     });
 
     res.json(updated);
@@ -500,6 +668,7 @@ export const checkInBooking = async (req, res) => {
     const updateData = {
       status:          'checked_in',
       actual_check_in: arrival_time ? new Date(arrival_time) : now,
+      arrival_time:    arrival_time ? new Date(arrival_time) : now,
     };
 
     if (id_type    !== undefined) updateData.id_type    = id_type    || null;

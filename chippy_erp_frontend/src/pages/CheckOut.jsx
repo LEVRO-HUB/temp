@@ -144,6 +144,19 @@ export default function CheckOut() {
     ? nightsBetween(booking.actual_check_in || booking.check_in_date, new Date())
     : 0;
 
+  const handleRecordPayment = () => {
+    if (!booking) return;
+    navigate('/payments', {
+      state: {
+        autoOpenCreate: true,
+        prefilledBookingId: booking.id,
+        prefilledAmount: outstanding,
+        prefilledRemarks: `Checkout settlement for BKG-${10000 + booking.id}`,
+        returnTo: `/check-out/${booking.id}`,
+      },
+    });
+  };
+
   // ── submit checkout ─────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -305,9 +318,18 @@ export default function CheckOut() {
             {outstanding > 0 && (
               <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-xl mt-3">
                 <AlertTriangle size={14} className="text-red-500 shrink-0" />
-                <p className="text-[12px] font-bold text-red-700">
-                  Collect {fmtINR(outstanding)} before guest leaves. Record it in Payments after check-out.
-                </p>
+                <div className="flex-1">
+                  <p className="text-[12px] font-bold text-red-700">
+                    Collect {fmtINR(outstanding)} before guest leaves.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleRecordPayment}
+                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-red-200 rounded-lg text-[11px] font-extrabold text-red-700 hover:bg-red-100"
+                  >
+                    <Receipt size={12} /> Record Payment
+                  </button>
+                </div>
               </div>
             )}
 

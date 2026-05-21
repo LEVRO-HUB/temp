@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Eye, Edit2, Download, Printer, ArrowLeft, Search } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import { exportToCSV } from '../utils/exportCSV';
 import API_BASE_URL from '../config';
 
+const METHOD_LABELS = {
+  cash: 'Cash',
+  upi: 'UPI',
+  bank: 'Bank Transfer',
+  card: 'Card',
+  cheque: 'Cheque',
+  rtgs: 'RTGS',
+};
+
 export default function PaymentModule() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [payments, setPayments] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,10 +29,11 @@ export default function PaymentModule() {
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const [limit] = useState(10);
   const [filterMethod, setFilterMethod] = useState('All Methods');
+  const [postSavePath, setPostSavePath] = useState('');
 
   const [form, setForm] = useState({
-    booking_id: '', payment_amt_in_base: '', method: 'Bank Transfer',
-    transaction_type: 'Receipt', payment_type: 'Advanced', cheque_no: '',
+    booking_id: '', payment_amt_in_base: '', method: 'bank',
+    transaction_type: 'credit', payment_type: 'advance', cheque_no: '',
     rtgs_ref_no: '', remarks: ''
   });
 
@@ -51,7 +64,28 @@ export default function PaymentModule() {
         setPayments(result.data);
         setPagination({ total: result.total, totalPages: result.totalPages });
       }
-      if (resBook.ok) setBookings(await resBook.json());
+      if (resBook.ok) {
+        const result = await resBook.json();
+        const bookingList = Array.isArray(result) ? result : result.data || [];
+        setBookings(bookingList);
+
+        if (location.state?.autoOpenCreate) {
+          setForm(prev => ({
+            ...prev,
+            booking_id: location.state.prefilledBookingId?.toString() || '',
+            payment_amt_in_base: location.state.prefilledAmount ? String(location.state.prefilledAmount) : '',
+            method: 'cash',
+            transaction_type: 'credit',
+            payment_type: 'partial',
+            remarks: location.state.prefilledRemarks || '',
+          }));
+          setEditId(null);
+          setIsViewOnly(false);
+          setPostSavePath(location.state.returnTo || '');
+          setViewMode('create');
+          window.history.replaceState({}, document.title);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -65,12 +99,27 @@ export default function PaymentModule() {
     const method = editId ? 'PUT' : 'POST';
     const url = editId ? `${API_BASE_URL}/api/payments/${editId}` : `${API_BASE_URL}/api/payments`;
 
-    await fetch(url, {
+    const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({...form, payment_amt_in_base: parseFloat(form.payment_amt_in_base)})
+      body: JSON.stringify({
+        ...form,
+        type_of_method: form.method,
+        payment_amt_in_base: parseFloat(form.payment_amt_in_base)
+      })
     });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || 'Failed to save payment');
+      return;
+    }
     
+    if (postSavePath) {
+      navigate(postSavePath);
+      return;
+    }
+
     resetForm();
     fetchData();
   };
@@ -79,9 +128,9 @@ export default function PaymentModule() {
     setForm({
       booking_id: p.booking_id || '',
       payment_amt_in_base: p.payment_amt_in_base || '',
-      method: p.type_of_method || 'Bank Transfer',
-      transaction_type: p.transaction_type || 'Receipt',
-      payment_type: p.payment_type || 'Advanced',
+      method: p.type_of_method || 'bank',
+      transaction_type: p.transaction_type || 'credit',
+      payment_type: p.payment_type || 'advance',
       cheque_no: p.cheque_no || '',
       rtgs_ref_no: p.rtgs_ref_no || '',
       remarks: p.remarks || ''
@@ -92,15 +141,16 @@ export default function PaymentModule() {
   };
 
   const resetForm = () => {
-    setForm({ booking_id: '', payment_amt_in_base: '', method: 'Bank Transfer', transaction_type: 'Receipt', payment_type: 'Advanced', cheque_no: '', rtgs_ref_no: '', remarks: '' });
+    setForm({ booking_id: '', payment_amt_in_base: '', method: 'bank', transaction_type: 'credit', payment_type: 'advance', cheque_no: '', rtgs_ref_no: '', remarks: '' });
     setEditId(null);
     setIsViewOnly(false);
+    setPostSavePath('');
   };
 
   const filteredPayments = payments.filter(p => {
     const matchesSearch = (p.id?.toString() || '').includes(searchTerm) || 
                           (p.booking?.guest_name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-    const actualMethod = p.type_of_method || p.method || 'Bank Transfer';
+    const actualMethod = p.type_of_method || p.method || 'bank';
     const matchesMethod = filterMethod === 'All Methods' || actualMethod === filterMethod;
     return matchesSearch && matchesMethod;
   });
@@ -147,7 +197,7 @@ export default function PaymentModule() {
                  </div>
                  <div>
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Payment Method</p>
-                    <p className="text-base font-semibold text-gray-900">{form.method}</p>
+                    <p className="text-base font-semibold text-gray-900">{METHOD_LABELS[form.method] || form.method}</p>
                  </div>
               </div>
 
@@ -168,7 +218,7 @@ export default function PaymentModule() {
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Booking ID <span className="text-red-500">*</span></label>
                   <select required value={form.booking_id} onChange={e=>setForm({...form, booking_id: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500">
                     <option value="">Select an active booking</option>
-                    {bookings.map(b => <option key={b.id} value={b.id}>BKG-{b.id} - {b.guest_name}</option>)}
+                    {bookings.map(b => <option key={b.id} value={b.id}>BKG-{10000 + b.id} - {b.guest_name}</option>)}
                   </select>
                </div>
                <div>
@@ -182,8 +232,8 @@ export default function PaymentModule() {
                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tran Type</label>
                   <select value={form.transaction_type} onChange={e=>setForm({...form, transaction_type: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500">
-                    <option value="Receipt">Receipt</option>
-                    <option value="Refund">Refund</option>
+                    <option value="credit">Receipt</option>
+                    <option value="debit">Refund</option>
                   </select>
                </div>
                <div>
@@ -200,11 +250,12 @@ export default function PaymentModule() {
                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Payment Method <span className="text-red-500">*</span></label>
                   <select required value={form.method} onChange={e=>setForm({...form, method: e.target.value})} className="w-full px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none focus:border-[#2563EB] appearance-none disabled:bg-gray-50 disabled:text-gray-500">
-                    <option value="Cash">Cash</option>
-                    <option value="Bank Transfer">Bank Transfer / NEFT</option>
-                    <option value="UPI">UPI</option>
-                    <option value="Credit Card">Credit/Debit Card</option>
-                    <option value="Cheque">Cheque</option>
+                    <option value="cash">Cash</option>
+                    <option value="bank">Bank Transfer / NEFT</option>
+                    <option value="upi">UPI</option>
+                    <option value="card">Credit/Debit Card</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="rtgs">RTGS</option>
                   </select>
                </div>
                <div>
@@ -272,10 +323,12 @@ export default function PaymentModule() {
             <div className="flex gap-3 w-full md:w-auto">
                <select value={filterMethod} onChange={e => { setFilterMethod(e.target.value); setCurrentPage(1); }} className="flex-1 md:w-40 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm text-gray-700 font-medium outline-none">
                  <option>All Methods</option>
-                 <option value="Bank Transfer">Bank Transfer</option>
-                 <option value="Cash">Cash</option>
-                 <option value="UPI">UPI</option>
-                 <option value="Credit Card">Credit Card</option>
+                 <option value="bank">Bank Transfer</option>
+                 <option value="cash">Cash</option>
+                 <option value="upi">UPI</option>
+                 <option value="card">Card</option>
+                 <option value="cheque">Cheque</option>
+                 <option value="rtgs">RTGS</option>
                </select>
                <button onClick={() => { setSearchTerm(''); setFilterMethod('All Methods'); setCurrentPage(1); }} className="px-5 py-2 text-[#2563EB] border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-lg text-sm font-semibold transition-colors">
                  Reset
@@ -311,7 +364,7 @@ export default function PaymentModule() {
                        {p.booking ? `BKG-${p.booking.id}` : 'Unknown'}
                        <span className="text-gray-500 font-medium ml-2 text-xs">{p.booking?.guest_name}</span>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{p.type_of_method || p.method || 'Bank Transfer'}</td>
+                    <td className="px-6 py-4 text-gray-600">{METHOD_LABELS[p.type_of_method || p.method] || p.type_of_method || p.method || '-'}</td>
                     <td className="px-6 py-4 font-bold text-gray-900 text-right">₹{parseFloat(p.payment_amt_in_base).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
                     <td className="px-6 py-4">{getStatusPill()}</td>
                     <td className="px-6 py-4">
@@ -354,7 +407,7 @@ export default function PaymentModule() {
                           </div>
                        </div>
                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-gray-500 font-medium">{p.type_of_method || p.method || 'Bank Transfer'}</span>
+                          <span className="text-gray-500 font-medium">{METHOD_LABELS[p.type_of_method || p.method] || p.type_of_method || p.method || '-'}</span>
                           <span className="text-gray-500 font-medium">{new Date(p.payment_date).toLocaleDateString()}</span>
                        </div>
                        <div className="flex justify-between items-center mt-2 pt-3 border-t border-[#E5E7EB]">
