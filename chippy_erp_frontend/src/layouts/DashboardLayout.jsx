@@ -14,7 +14,7 @@ export default function DashboardLayout() {
   const dropdownRef = useRef(null);
 
   // Use the shared PermissionContext instead of fetching separately
-  const { permissions, loading: loadingPerms } = usePermissions();
+  const { permissions, can, loading: loadingPerms } = usePermissions();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -42,11 +42,9 @@ export default function DashboardLayout() {
     };
   }, []);
 
-  const { can } = usePermissions();
   const hasAccess = (moduleKey) => {
     if (user.role?.toLowerCase() === 'developer') return true;
     return can(moduleKey, 'view');
-  };
   };
 
   useEffect(() => {
