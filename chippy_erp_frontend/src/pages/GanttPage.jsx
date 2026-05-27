@@ -39,8 +39,18 @@ export default function GanttPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400 text-sm font-medium">
+      <div className="flex items-center justify-center h-64 text-gray-400 gap-2 text-sm font-medium">
+        <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         Loading calendar…
+      </div>
+    );
+  }
+
+  if (!sites.length) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-gray-400 gap-3">
+        <p className="text-sm font-semibold">No sites found.</p>
+        <p className="text-xs">Add a site in Zones &amp; Sites first.</p>
       </div>
     );
   }

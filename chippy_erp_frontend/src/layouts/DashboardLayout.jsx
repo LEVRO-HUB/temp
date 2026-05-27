@@ -86,12 +86,9 @@ export default function DashboardLayout() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Permission check helper
-  const hasAccess = (moduleKey) => {
-    if (user.role?.toLowerCase() === 'developer') return true;
-    if (user.role?.toLowerCase() === 'super admin') return true;
-    return can(moduleKey, 'view');
-  };
+  // RBAC disabled — all authenticated users see all modules
+  // Re-enable by checking can(moduleKey, 'view') after team discussion
+  const hasAccess = (_moduleKey) => true;
 
   // Redirect away from dashboard if no access — after permissions load
   useEffect(() => {
